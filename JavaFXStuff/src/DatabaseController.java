@@ -1,10 +1,13 @@
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.DatePicker;
 import javafx.stage.Stage;
 
 //I do not know how we're going to end up making one controller work for two fxmls, but if we don't, refactoring will be key
@@ -12,16 +15,24 @@ public class DatabaseController {
     
     @FXML
     private Button queryButton; //match the fx:id value from Scene Builder
-    
     @FXML
-    private TextArea resultArea; //match the fx:id value from Scene Builder
-    
+    private TextField queryField; //match the fx:id value from Scene Builder
     @FXML
-    private Button closeButton; //match the fx:id value from Scene Builder
+    private Button filterButton; //match the fx:id value from Scene Builder
+    @FXML
+    private DatePicker startDate;
+    @FXML
+    private DatePicker endDate;
+    @FXML
+    private TextArea dbView;
+    @FXML
+    private Button closeButton;
     
+    
+    private String lastStatement = "";
     
     private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
-    private dbSetup databaseCon = new dbSetup(); //Sets up database controls
+    private dbSetup my = new dbSetup();
     private record Entry(String username, String password, String userType){}; //Special subclass record type
     private List<Entry> users = new ArrayList<>();
     
@@ -30,14 +41,76 @@ public class DatabaseController {
     public void initialize() {
         // Set up what happens when button is clicked
         queryButton.setOnAction(event -> runQuery());
+        filterButton.setOnAction(event -> filterBtn());
         closeButton.setOnAction(event -> closeWindow());
     }
     
+    private void filterBtn() {
+        String db = dbView.getText();
+        if(!"".equals(lastStatement) && (db.substring(0, db.indexOf('\n'))).contains("date")) {
+            LocalDate start = startDate.getValue();
+            LocalDate end = endDate.getValue();            
+            if(start != null && end != null) {
+
+                String startStr = start.toString();
+                String endStr = end.toString();
+                
+                String sqlStatement = "SELECT * FROM (" + lastStatement.substring(0, lastStatement.length() - 1) + ") AS sub " +
+                    "WHERE sub.\"date\" BETWEEN '" + startStr + "' AND '" + endStr + "';";
+
+                try {
+                    // Get database creditials
+        
+                    // Build the connection
+                    Class.forName("org.postgresql.Driver");
+                    Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+                    // Create statement
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(sqlStatement);
+
+                    dbView.clear();
+
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    int columnCount = metaData.getColumnCount();
+
+                    for (int i = 1; i <= columnCount; i++) {
+                        dbView.appendText(metaData.getColumnName(i));
+                        if (i < columnCount) dbView.appendText("\t");
+                    }
+                    dbView.appendText("\n");
+
+                    while (rs.next()) {
+                        for (int i = 1; i <= columnCount; i++) {
+                            String value = rs.getString(i);
+                            dbView.appendText(value != null ? value : "NULL");
+                            if (i < columnCount) dbView.appendText("\t");
+                        }
+                        dbView.appendText("\n");
+                    }
+
+                    // Close connection
+                    rs.close();
+                    stmt.close();
+                    conn.close();
+
+                } catch (Exception e) {
+                    dbView.setText("Error connecting to database:\n" + e.getMessage());
+                    e.printStackTrace();
+                    System.exit(0);
+                }
+                
+            }    
+        }
+    }
+
     // Your method to run the database query
     private void runQuery() {
-        resultArea.setText("Query will run here...");
+        System.out.println("Querying");
+        dbView.setText("Query will run here...");
 
         try {
+            // Get database creditials
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
@@ -47,17 +120,31 @@ public class DatabaseController {
             Statement stmt = conn.createStatement();
 
             // Run sql query
-            String sqlStatement = "SELECT * FROM menuce";
+            String sqlStatement = queryField.getText();
+            sqlStatement += ";";
+            lastStatement = sqlStatement;
+            
             ResultSet rs = stmt.executeQuery(sqlStatement);
 
-            // Output result
-            String result = "";
-            while (rs.next()) {
-                result += rs.getString("name") + "\n";
-            }
+            dbView.clear();
 
-            // Display result
-            resultArea.setText(result);
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                dbView.appendText(metaData.getColumnName(i));
+                if (i < columnCount) dbView.appendText("\t");
+            }
+            dbView.appendText("\n");
+
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    String value = rs.getString(i);
+                    dbView.appendText(value != null ? value : "NULL");
+                    if (i < columnCount) dbView.appendText("\t");
+                }
+                dbView.appendText("\n");
+            }
 
             // Close connection
             rs.close();
@@ -65,8 +152,8 @@ public class DatabaseController {
             conn.close();
 
         } catch (Exception e) {
-            resultArea.setText("Error connecting to database:\n" + e.getMessage());
-            e.printStackTrace();
+            dbView.setText("Error connecting to database:\n" + e.getMessage());
+             e.printStackTrace();
             System.exit(0);
         }
     }
@@ -76,14 +163,13 @@ public class DatabaseController {
         stage.close();
     }
 
-    //Complete
     public void getUsers()
     {
         try {
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, databaseCon.user, databaseCon.pswd);
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
 
             // Create statement
             Statement stmt = conn.createStatement();
