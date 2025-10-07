@@ -10,6 +10,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.DatePicker;
 import javafx.stage.Stage;
 
+//I do not know how we're going to end up making one controller work for two fxmls, but if we don't, refactoring will be key
 public class DatabaseController {
     
     @FXML
@@ -113,7 +114,7 @@ public class DatabaseController {
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            Connection conn = DriverManager.getConnection(DB_URL, databaseCon.user, databaseCon.pswd);
 
             // Create statement
             Statement stmt = conn.createStatement();
