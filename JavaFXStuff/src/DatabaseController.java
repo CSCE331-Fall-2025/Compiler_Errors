@@ -1,5 +1,7 @@
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -22,27 +24,29 @@ public class DatabaseController {
     private DatePicker endDate;
     @FXML
     private TextArea dbView;
+    @FXML
+    private Button closeButton;
+    
     
     private String lastStatement = "";
     
     private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
+    private dbSetup my = new dbSetup();
+    private record Entry(String username, String password, String userType){}; //Special subclass record type
+    private List<Entry> users = new ArrayList<>();
     
     // This method runs automatically when the FXML loads
     @FXML
     public void initialize() {
         // Set up what happens when button is clicked
-        System.out.println("Test");
         queryButton.setOnAction(event -> runQuery());
         filterButton.setOnAction(event -> filterBtn());
-        // closeButton.setOnAction(event -> closeWindow());
+        closeButton.setOnAction(event -> closeWindow());
     }
     
     private void filterBtn() {
         String db = dbView.getText();
-        System.out.println("hello 2");
-        System.out.println((db.substring(0, db.indexOf('\n'))));
         if(!"".equals(lastStatement) && (db.substring(0, db.indexOf('\n'))).contains("date")) {
-            System.out.println("hello 2");
             LocalDate start = startDate.getValue();
             LocalDate end = endDate.getValue();            
             if(start != null && end != null) {
@@ -55,7 +59,6 @@ public class DatabaseController {
 
                 try {
                     // Get database creditials
-                    dbSetup my = new dbSetup();
         
                     // Build the connection
                     Class.forName("org.postgresql.Driver");
@@ -63,7 +66,6 @@ public class DatabaseController {
 
                     // Create statement
                     Statement stmt = conn.createStatement();
-                    System.out.println(sqlStatement);
                     ResultSet rs = stmt.executeQuery(sqlStatement);
 
                     dbView.clear();
@@ -108,7 +110,6 @@ public class DatabaseController {
 
         try {
             // Get database creditials
-            dbSetup my = new dbSetup();
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
@@ -122,7 +123,6 @@ public class DatabaseController {
             sqlStatement += ";";
             lastStatement = sqlStatement;
             
-            System.out.println(sqlStatement);
             ResultSet rs = stmt.executeQuery(sqlStatement);
 
             dbView.clear();
@@ -158,7 +158,52 @@ public class DatabaseController {
     }
 
     private void closeWindow() { 
-        // Stage stage = (Stage) closeButton.getScene().getWindow();
-        // stage.close();
+        Stage stage = (Stage) closeButton.getScene().getWindow();
+        stage.close();
+    }
+
+    public void getUsers()
+    {
+        try {
+ 
+            // Build the connection
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+            // Create statement
+            Statement stmt = conn.createStatement();
+
+            // Run sql query [update to pull data properly?]
+            String sqlStatement = "SELECT * FROM usersce";
+            ResultSet rs = stmt.executeQuery(sqlStatement);
+
+            // Output result
+            while (rs.next()) {
+                users.add(new Entry(rs.getString("username"), rs.getString("password"), rs.getString("usertype")));
+            }
+
+            // Close connection
+            rs.close();
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+    }
+
+    //Complete
+    public String auth(String username, String password)
+    {
+        //Is this slow? Yes, but for refactor later
+        for(Entry entry : users)
+        {
+            if(entry.username.equals(username) && entry.password.equals(password))
+            {
+                return entry.userType;
+            }
+        }
+        return "No User Found";
     }
 }
