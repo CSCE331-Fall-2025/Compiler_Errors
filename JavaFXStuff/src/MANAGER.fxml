@@ -34,7 +34,6 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.DatePicker?>
-<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
@@ -43,12 +42,11 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<VBox prefHeight="400.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<VBox fx:controller="DatabaseController" prefHeight="738.0" prefWidth="748.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
   <children>
-    <MenuBar VBox.vgrow="NEVER">
+    <MenuBar prefHeight="42.0" prefWidth="669.0" VBox.vgrow="NEVER">
       <menus>
         <Menu mnemonicParsing="false" text="File">
           <items>
@@ -87,22 +85,61 @@
         </Menu>
       </menus>
     </MenuBar>
-    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
+    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="712.0" prefWidth="770.0" VBox.vgrow="ALWAYS">
       <children>
-        <Label alignment="CENTER" layoutX="155.0" layoutY="177.0" style="&#10;" text="Drag components from Library here…" textAlignment="CENTER" textFill="#9f9f9f" wrapText="false">
-          <font>
-            <Font size="18.0" />
-          </font>
-        </Label>
-            <Button layoutX="27.0" layoutY="306.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="255.0" text="Query" />
-            <TextField alignment="TOP_LEFT" layoutX="27.0" layoutY="131.0" prefHeight="173.0" prefWidth="255.0" promptText="SQL Query here" />
-            <Button layoutX="230.0" layoutY="54.0" mnemonicParsing="false" text="Filter" />
-            <DatePicker layoutX="27.0" layoutY="78.0" />
-            <DatePicker layoutX="28.0" layoutY="26.0" />
+            <Button fx:id="queryButton" layoutX="27.0" layoutY="306.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="255.0" text="Query" />
+            <TextField fx:id="queryField" alignment="TOP_LEFT" layoutX="27.0" layoutY="131.0" prefHeight="173.0" prefWidth="255.0" promptText="SQL Query here" />
+            <Button fx:id="filterButton" layoutX="230.0" layoutY="54.0" mnemonicParsing="false" text="Filter" />
+            <DatePicker fx:id="endDate" layoutX="27.0" layoutY="78.0" />
+            <DatePicker fx:id="startDate" layoutX="28.0" layoutY="26.0" />
             <Text layoutX="67.0" layoutY="18.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Start Date" />
             <Text layoutX="70.0" layoutY="71.0" strokeType="OUTSIDE" strokeWidth="0.0" text="End Date" wrappingWidth="99.7366943359375" />
-            <TextArea editable="false" layoutX="310.0" layoutY="22.0" prefHeight="314.0" prefWidth="298.0" />
+            <TextArea fx:id="dbView" editable="false" layoutX="310.0" layoutY="22.0" prefHeight="314.0" prefWidth="298.0" />
             <Text layoutX="418.0" layoutY="18.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Database View" />
+            <TextField fx:id="addMenuNameField" layoutX="30.0" layoutY="380.0" />
+            <TextField fx:id="addMenuPriceField" layoutX="185.0" layoutY="380.0" />
+            <TextField fx:id="addMenuIngredientsField" layoutX="344.0" layoutY="380.0" />
+            <TextField fx:id="updateMenuNameField" layoutX="29.0" layoutY="431.0" />
+            <TextField fx:id="updateMenuNewNameField" layoutX="186.0" layoutY="431.0" />
+            <TextField fx:id="updateMenuNewPriceField" layoutX="344.0" layoutY="431.0" />
+            <Text layoutX="94.0" layoutY="367.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="240.0" layoutY="367.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Price" />
+            <Text layoutX="94.0" layoutY="424.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="385.0" layoutY="367.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Ingredients" />
+            <Text layoutX="227.0" layoutY="424.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Name" />
+            <Text layoutX="388.0" layoutY="423.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Price" />
+            <Button fx:id="addMenuButton" layoutX="506.0" layoutY="380.0" mnemonicParsing="false" text="Add Menu Item" />
+            <Button fx:id="updateMenuButton" layoutX="506.0" layoutY="431.0" mnemonicParsing="false" text="Update Menu Item" />
+            <TextField fx:id="addInvNameField" layoutX="27.0" layoutY="490.0" />
+            <TextField fx:id="addInvQtyField" layoutX="182.0" layoutY="490.0" />
+            <TextField fx:id="addInvUPField" layoutX="341.0" layoutY="490.0" />
+            <TextField fx:id="updateInvNameField" layoutX="26.0" layoutY="541.0" />
+            <TextField fx:id="updateInvQtyField" layoutX="183.0" layoutY="541.0" />
+            <TextField fx:id="updateInvUPField" layoutX="341.0" layoutY="541.0" />
+            <Text layoutX="91.0" layoutY="477.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="237.0" layoutY="477.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Qty" />
+            <Text layoutX="91.0" layoutY="534.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="382.0" layoutY="477.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Unit Price" />
+            <Text layoutX="224.0" layoutY="534.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Qty" />
+            <Text layoutX="385.0" layoutY="533.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Unit Price" />
+            <Button fx:id="addInvButton" layoutX="503.0" layoutY="490.0" mnemonicParsing="false" text="Add Inventory Item" />
+            <Button fx:id="updateInvButton" layoutX="503.0" layoutY="541.0" mnemonicParsing="false" text="Update Inventory Item" />
+            <TextField fx:id="addEmpNameField" layoutX="28.0" layoutY="600.0" />
+            <TextField fx:id="addEmpTypeField" layoutX="184.0" layoutY="600.0" />
+            <TextField fx:id="addEmpEmailField" layoutX="340.0" layoutY="600.0" />
+            <TextField fx:id="addEmpPhoneField" layoutX="496.0" layoutY="600.0" />
+            <TextField fx:id="updateEmpNameField" layoutX="28.0" layoutY="637.0" />
+            <TextField fx:id="updateEmpTypeField" layoutX="184.0" layoutY="637.0" />
+            <TextField fx:id="updateEmpEmailField" layoutX="340.0" layoutY="637.0" />
+            <TextField fx:id="updateEmpPhoneField" layoutX="496.0" layoutY="637.0" />
+            <Text layoutX="90.0" layoutY="596.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="246.0" layoutY="596.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Type" />
+            <Text layoutX="403.0" layoutY="592.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Email" />
+            <Text layoutX="558.0" layoutY="594.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Phone" />
+            <Button fx:id="addEmpButton" layoutX="660.0" layoutY="600.0" mnemonicParsing="false" text="Add Employee" />
+            <Button fx:id="updateEmpButton" layoutX="659.0" layoutY="637.0" mnemonicParsing="false" text="Update Employee" />
+            <TextField fx:id="fireEmpNameField" layoutX="26.0" layoutY="677.0" />
+            <Button fx:id="fireEmpButton" layoutX="201.0" layoutY="677.0" mnemonicParsing="false" text="Fire Employee" />
       </children>
     </AnchorPane>
   </children>
