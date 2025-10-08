@@ -194,7 +194,14 @@ public class DatabaseController {
         }
     }
 
-    //Complete
+     /*
+     * Validates user login information and returns associated user type
+     * 
+     * Does not throw exceptions.
+     * 
+     * @param username - username associated with login information
+     * @param password - password associated with login information
+     */
     public String auth(String username, String password)
     {
         //Is this slow? Yes, but for refactor later
