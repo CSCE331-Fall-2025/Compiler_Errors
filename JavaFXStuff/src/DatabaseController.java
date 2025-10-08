@@ -223,7 +223,7 @@ public class DatabaseController {
             query("UPDATE employeesce SET email = \'" + email + "\' WHERE name = \'" + name + "\';");
         }
         if(!phone.isEmpty()) {
-            query("UPDATE employeesce SET phone = \'" + phone + "\' WHERE name = \'" + name + "\';");
+            query("UPDATE employeesce SET phonenum = \'" + phone + "\' WHERE name = \'" + name + "\';");
         }
       
     }

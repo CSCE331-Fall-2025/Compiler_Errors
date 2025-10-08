@@ -54,7 +54,7 @@ public class App extends Application {
         {
             //System.out.println("Cashier time!");
             //Load Cashier here
-            fxmlLoader = new FXMLLoader(getClass().getResource("/CASHIER.fxml"));
+            fxmlLoader = new FXMLLoader(getClass().getResource("/Cashiermenu.fxml"));
         }
         else if(userType.equals("MANAGER"))
         {
