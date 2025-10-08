@@ -8,9 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.DatePicker;
-import javafx.stage.Stage;
 
-//I do not know how we're going to end up making one controller work for two fxmls, but if we don't, refactoring will be key
 public class DatabaseController {
     
     @FXML
@@ -26,7 +24,64 @@ public class DatabaseController {
     @FXML
     private TextArea dbView;
     @FXML
-    private Button closeButton;
+    private TextField addMenuNameField;
+    @FXML
+    private TextField addMenuPriceField;
+    @FXML
+    private TextField addMenuIngredientsField;
+    @FXML
+    private TextField updateMenuNameField;
+    @FXML
+    private TextField updateMenuNewNameField;
+    @FXML
+    private TextField updateMenuNewPriceField;
+    @FXML
+    private TextField addInvNameField;
+    @FXML
+    private TextField addInvQtyField;
+    @FXML
+    private TextField addInvUPField;
+    @FXML
+    private TextField updateInvNameField;
+    @FXML
+    private TextField updateInvQtyField;
+    @FXML
+    private TextField updateInvUPField;
+    @FXML
+    private TextField addEmpNameField;
+    @FXML
+    private TextField addEmpTypeField;
+    @FXML
+    private TextField addEmpEmailField;
+    @FXML
+    private TextField addEmpPhoneField;
+    @FXML
+    private TextField updateEmpNameField;
+    @FXML
+    private TextField updateEmpTypeField;
+    @FXML
+    private TextField updateEmpEmailField;
+    @FXML
+    private TextField updateEmpPhoneField;
+    @FXML
+    private TextField fireEmpNameField;
+    @FXML
+    private Button addMenuButton;
+    @FXML
+    private Button updateMenuButton;
+    @FXML
+    private Button addInvButton;
+    @FXML
+    private Button updateInvButton;
+    @FXML
+    private Button addEmpButton;
+    @FXML
+    private Button updateEmpButton;
+    @FXML
+    private Button fireEmpButton;
+
+    // @FXML
+    // private Button closeButton;
     
     
     private String lastStatement = "";
@@ -42,8 +97,142 @@ public class DatabaseController {
         // Set up what happens when button is clicked
         queryButton.setOnAction(event -> runQuery());
         filterButton.setOnAction(event -> filterBtn());
-        closeButton.setOnAction(event -> closeWindow());
+        addMenuButton.setOnAction(event -> addMenuBtn());
+        updateMenuButton.setOnAction(event -> updateMenuBtn());
+        addInvButton.setOnAction(event -> addInvBtn());
+        updateInvButton.setOnAction(event -> updateInvBtn());
+        addEmpButton.setOnAction(event -> addEmpBtn());
+        updateEmpButton.setOnAction(event -> updateEmpBtn());
+        fireEmpButton.setOnAction(event -> fireBtn());
+        // closeButton.setOnAction(event -> closeWindow());
     }
+
+    private void query(String query) {
+        System.out.println("Attempting query: " + query);
+        try {
+            // Get database creditials
+ 
+            // Build the connection
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+            // Create statement
+            Statement stmt = conn.createStatement();
+            
+            stmt.executeUpdate(query);
+
+            // Close connection
+
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            dbView.setText("Error connecting to database:\n" + e.getMessage());
+             e.printStackTrace();
+            System.exit(0);
+        }
+
+    }
+
+    private void addMenuBtn() {
+        String name = addMenuNameField.getText();
+        String price = addMenuPriceField.getText();
+        String ingredients = addMenuIngredientsField.getText();
+        
+        if(name.isEmpty()) { return; }
+
+        if(!price.isEmpty() && !ingredients.isEmpty()) {
+            query("INSERT INTO menuce (name, price, ingredients) VALUES (\'" + name + "\', " + price + ", \'" + ingredients + "\');");
+        }
+
+
+    }
+
+    private void updateMenuBtn() {
+        String name = updateMenuNameField.getText();
+        String newname = updateMenuNewNameField.getText();
+        String newprice = updateMenuNewPriceField.getText();
+        
+        if(name.isEmpty()) { return; }
+
+        if(!newname.isEmpty()) {
+            query("UPDATE menuce SET name = \'" + newname + "\' WHERE name = \'" + name + "\';");
+        }
+        if(!newprice.isEmpty()) {
+            query("UPDATE menuce SET price = \'" + newprice + "\' WHERE name = \'" + name + "\';");
+        }
+
+    }
+    
+    private void addInvBtn() {
+        String name = addInvNameField.getText();
+        String qty = addInvQtyField.getText();
+        String up = addInvUPField.getText();
+
+        if(name.isEmpty()) { return; }
+
+        if(!qty.isEmpty() && !up.isEmpty()) {
+            query("INSERT INTO inventoryce (name, quantity, unit_price) VALUES (\'" + name + "\', " + qty + ", " + up + ");");
+        }
+    }
+
+    private void updateInvBtn() {
+        String name = updateInvNameField.getText();
+        String qty = updateInvQtyField.getText();
+        String up = updateInvUPField.getText();
+
+
+        if(name.isEmpty()) { return; }
+
+        if(!qty.isEmpty()) {
+            query("UPDATE inventoryce SET quantity = " + qty + " WHERE name = \'" + name + "\';");
+        }
+        if(!up.isEmpty()) {
+            query("UPDATE inventoryce SET unit_price = " + up + " WHERE name = \'" + name + "\';");
+        }
+
+    }
+
+    private void addEmpBtn() {
+        String name = addEmpNameField.getText();
+        String type = addEmpTypeField.getText();
+        String email = addEmpEmailField.getText();
+        String phone = addEmpPhoneField.getText();
+
+        if(name.isEmpty()) { return; }
+
+        if(!type.isEmpty() && !email.isEmpty() && !phone.isEmpty()) {
+            query("INSERT INTO employeesce (name, employeetype, email, phonenum) VALUES (\'" + name + "\', \'" + type + "\', \'" + email + "\', \'" + phone + "\');");
+        }
+      
+        
+    }
+
+    private void updateEmpBtn() {
+        String name = updateEmpNameField.getText();
+        String type = updateEmpTypeField.getText();
+        String email = updateEmpEmailField.getText();
+        String phone = updateEmpPhoneField.getText();
+
+        if(name.isEmpty()) { return; }
+
+        if(!type.isEmpty()) {
+            query("UPDATE employeesce SET employeetype = \'" + type + "\' WHERE name = \'" + name + "\';");
+        }
+        if(!email.isEmpty()) {
+            query("UPDATE employeesce SET email = \'" + email + "\' WHERE name = \'" + name + "\';");
+        }
+        if(!phone.isEmpty()) {
+            query("UPDATE employeesce SET phonenum = \'" + phone + "\' WHERE name = \'" + name + "\';");
+        }
+      
+    }
+
+    private void fireBtn() {
+        String name = fireEmpNameField.getText();
+        query("DELETE FROM employeesce WHERE name = \'" + name + "\';");   
+    }
+
     
     private void filterBtn() {
         String db = dbView.getText();
@@ -114,7 +303,7 @@ public class DatabaseController {
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, databaseCon.user, databaseCon.pswd);
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
 
             // Create statement
             Statement stmt = conn.createStatement();
@@ -158,10 +347,6 @@ public class DatabaseController {
         }
     }
 
-    private void closeWindow() { 
-        Stage stage = (Stage) closeButton.getScene().getWindow();
-        stage.close();
-    }
 
     public void getUsers()
     {
@@ -194,7 +379,9 @@ public class DatabaseController {
         }
     }
 
-     /*
+    //Complete
+
+    /*
      * Validates user login information and returns associated user type
      * 
      * Does not throw exceptions.
