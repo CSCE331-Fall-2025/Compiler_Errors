@@ -379,8 +379,6 @@ public class DatabaseController {
         }
     }
 
-    //Complete
-
     /*
      * Validates user login information and returns associated user type
      * 

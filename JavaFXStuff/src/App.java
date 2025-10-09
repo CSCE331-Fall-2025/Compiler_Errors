@@ -13,7 +13,8 @@ public class App extends Application {
         String username;
         String password;
         String userType;
-        //Tear the users of the database
+        
+        //Have program store users to prevent repeat calls
         dbContr.getUsers();
 
         while(true)
@@ -23,6 +24,7 @@ public class App extends Application {
             System.out.print("Enter password: ");
             password = scanner.nextLine();
 
+            //Find valid user
             userType = dbContr.auth(username,password);
             if(userType.equals("CASHIER"))
             {
@@ -37,18 +39,14 @@ public class App extends Application {
             System.out.println("Incorrect username or Password. Try Again");
         }
         launch(App.class, "--userType=" + userType); //Launches the program
-        
-        
-
+        scanner.close();
     }
 
-    //DatabaseController is where mappings between the database and the GUI take place
-    //This is the selector for which display to show (with example being the temporary one)
+    //Gets userType from launch() and loads appropriate GUI
     @Override
     public void start(Stage stage) throws Exception {
         String userType = getParameters().getNamed().getOrDefault("userType", "UNKNOWN");
 
-        //Might cause memory leaks, not sure
         FXMLLoader fxmlLoader = new FXMLLoader();
         if(userType.equals("CASHIER"))
         {
@@ -66,8 +64,8 @@ public class App extends Application {
         {
             System.exit(0);
         }
-        Scene scene = new Scene(fxmlLoader.load(), 600, 400); //What fxml, X-Size, Y-Size
-        stage.setTitle("AWS PostgreSQL Query Example"); //Name of the Application
+        Scene scene = new Scene(fxmlLoader.load(), 900, 600); //What fxml, X-Size, Y-Size
+        stage.setTitle("POS System"); //Name of the Application
         stage.setScene(scene); //Load this scene
         stage.show();
     }
