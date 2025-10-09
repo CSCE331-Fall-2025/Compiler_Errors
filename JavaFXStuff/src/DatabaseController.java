@@ -41,7 +41,7 @@ public class DatabaseController {
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, databaseCon.user, databaseCon.pswd);
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
 
             // Create statement
             Statement stmt = conn.createStatement();

@@ -38,7 +38,6 @@ public class App extends Application {
         }
         launch(App.class, "--userType=" + userType); //Launches the program
         
-        
         //Comments are like so!
         /*Multiline Comments! */
 
@@ -68,13 +67,13 @@ public class App extends Application {
         {
             //System.out.println("Cashier time!");
             //Load Cashier here
-            fxmlLoader = new FXMLLoader(getClass().getResource("database-view.fxml"));
+            fxmlLoader = new FXMLLoader(getClass().getResource("database-CASHIER.fxml"));
         }
         else if(userType.equals("MANAGER"))
         {
             //System.out.println("Manager time!");
             //Load manager
-            fxmlLoader = new FXMLLoader(getClass().getResource("database-view.fxml"));
+            fxmlLoader = new FXMLLoader(getClass().getResource("MANAGER.fxml"));
         }
         else
         {
