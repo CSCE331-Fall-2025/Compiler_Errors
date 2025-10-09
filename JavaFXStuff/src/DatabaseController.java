@@ -115,8 +115,6 @@ public class DatabaseController {
             // Build the connection
             Class.forName("org.postgresql.Driver");
             Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-<<<<<<< HEAD
-=======
 
             // Create statement
             Statement stmt = conn.createStatement();
@@ -306,7 +304,6 @@ public class DatabaseController {
             // Build the connection
             Class.forName("org.postgresql.Driver");
             Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
->>>>>>> 79b2d737af60829bf80d1aa2150cbac56acecfc5
 
             // Create statement
             Statement stmt = conn.createStatement();
@@ -381,8 +378,6 @@ public class DatabaseController {
             System.exit(0);
         }
     }
-
-    //Complete
 
     /*
      * Validates user login information and returns associated user type
