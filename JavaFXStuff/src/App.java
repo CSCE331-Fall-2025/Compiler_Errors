@@ -64,7 +64,7 @@ public class App extends Application {
         {
             System.exit(0);
         }
-        Scene scene = new Scene(fxmlLoader.load(), 900, 600); //What fxml, X-Size, Y-Size
+        Scene scene = new Scene(fxmlLoader.load(), 950, 800); //What fxml, X-Size, Y-Size
         stage.setTitle("POS System"); //Name of the Application
         stage.setScene(scene); //Load this scene
         stage.show();

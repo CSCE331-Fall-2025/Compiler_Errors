@@ -55,7 +55,7 @@ public class DatabaseController {
     private Button addEmpButton, updateEmpButton, fireEmpButton;
 
 
-     @FXML
+    @FXML
     private ChoiceBox reportBox;
     @FXML 
     private Button reportButton;
