@@ -12,12 +12,17 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.ChoiceBox;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class DatabaseController {
     
     //Main
     @FXML
-    private TextField queryField, dbView;
+    private TextField queryField;
+    @FXML 
+    private TextArea dbView;
     @FXML
     private DatePicker startDate, endDate;
     @FXML
@@ -49,6 +54,13 @@ public class DatabaseController {
     @FXML
     private Button addEmpButton, updateEmpButton, fireEmpButton;
 
+
+     @FXML
+    private ChoiceBox reportBox;
+    @FXML 
+    private Button reportButton;
+    @FXML
+    private TextArea reportView;
     // @FXML
     // private Button closeButton;
     
@@ -69,8 +81,14 @@ public class DatabaseController {
     @FXML
     public void initialize() {
         // Set up what happens when button is clicked
+        ObservableList<String> reports = FXCollections.observableArrayList(
+             "Top 5 Menu items", "Top 10 Sales Days", "All time profit"
+        );
+        reportBox.setItems(reports);
+
         ingredients = getIngredients();
 
+        reportButton.setOnAction(event -> reportBtn());
         queryButton.setOnAction(event -> runQuery());
         filterButton.setOnAction(event -> filterBtn());
         addMenuButton.setOnAction(event -> addMenuBtn());
@@ -83,9 +101,76 @@ public class DatabaseController {
         // closeButton.setOnAction(event -> closeWindow());
     }
 
+    public void reportBtn() {
+        String value = reportBox.getValue().toString();
+
+        try {
+            // Get database creditials
+ 
+            // Build the connection
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+            // Create statement
+            Statement stmt = conn.createStatement();
+            String qry = "";
+
+            if(value.equals("Top 5 Menu items")) {
+                qry = "SELECT item, COUNT(*) AS sales FROM orderhistoryce GROUP BY item ORDER BY sales DESC LIMIT 5;";
+            }
+
+            if(value.equals("Top 10 Sales Days")) {
+                qry = "SELECT date, COUNT(*) AS sales FROM orderhistoryce GROUP BY date ORDER BY sales DESC LIMIT 10;";
+            }
+
+            if(value.equals("All time profit")) {
+                qry = "SELECT SUM(price * qty) AS profit FROM orderhistoryce;";
+            }
+
+            if(qry.isEmpty()) { return; }
+
+            ResultSet rs = stmt.executeQuery(qry);
+            
+            reportView.clear();
+
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                reportView.appendText(metaData.getColumnName(i));
+                if (i < columnCount) reportView.appendText("\t");
+            }
+            reportView.appendText("\n");
+
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    String values = rs.getString(i);
+                    reportView.appendText(values != null ? values : "NULL");
+                    if (i < columnCount) reportView.appendText("\t");
+                }
+                reportView.appendText("\n");
+            }
+            
+
+
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            reportView.setText("Error connecting to database:\n" + e.getMessage());
+             e.printStackTrace();
+        }
+        
+
+    }
+
     public HashSet<String> getIngredients() {
         HashSet<String> ingredients1 = new HashSet<>();
+
         try {
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT ingredients FROM menuce;");
 
             while(rs.next()) {
@@ -139,6 +224,10 @@ public class DatabaseController {
     private void query(String query) {
         System.out.println("Attempting query: " + query);
         try {
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            stmt = conn.createStatement();
+
             stmt.executeUpdate(query);
         } catch (Exception e) {
             dbView.setText("Error:\n" + e.getMessage());
@@ -274,6 +363,10 @@ public class DatabaseController {
                     "WHERE sub.\"date\" BETWEEN '" + startStr + "' AND '" + endStr + "';";
 
                 try {
+                    Class.forName("org.postgresql.Driver");
+                    conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+                    stmt = conn.createStatement();
+
                     ResultSet rs = stmt.executeQuery(sqlStatement);
 
                     dbView.clear();
@@ -318,7 +411,12 @@ public class DatabaseController {
             String sqlStatement = queryField.getText();
             sqlStatement += ";";
             lastStatement = sqlStatement;
-            
+
+
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            stmt = conn.createStatement();
+
             ResultSet rs = stmt.executeQuery(sqlStatement);
 
             dbView.clear();
