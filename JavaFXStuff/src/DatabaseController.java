@@ -15,76 +15,39 @@ import javafx.scene.control.DatePicker;
 
 public class DatabaseController {
     
+    //Main
     @FXML
-    private Button queryButton; //match the fx:id value from Scene Builder
+    private TextField queryField, dbView;
     @FXML
-    private TextField queryField; //match the fx:id value from Scene Builder
+    private DatePicker startDate, endDate;
     @FXML
-    private Button filterButton; //match the fx:id value from Scene Builder
+    private Button queryButton, filterButton;
+    
+    //Menu
     @FXML
-    private DatePicker startDate;
+    private TextField addMenuNameField, addMenuPriceField, addInvNameField, addMenuIngredientsField;
     @FXML
-    private DatePicker endDate;
+    private TextField updateMenuNewNameField, updateMenuNewPriceField, updateMenuNameField;
     @FXML
-    private TextArea dbView;
+    private Button addMenuButton, updateMenuButton;
+
+    //Inventory
     @FXML
-    private TextField addMenuNameField;
+    private TextField addInvQtyField, addInvUPField;
     @FXML
-    private TextField addMenuPriceField;
+    private TextField updateInvNameField, updateInvQtyField, updateInvUPField;
     @FXML
-    private TextField addMenuIngredientsField;
+    private Button addInvButton, updateInvButton;
+
+    //Employee
     @FXML
-    private TextField updateMenuNameField;
+    private TextField addEmpNameField, addEmpTypeField, addEmpEmailField, addEmpPhoneField;
     @FXML
-    private TextField updateMenuNewNameField;
-    @FXML
-    private TextField updateMenuNewPriceField;
-    @FXML
-    private TextField addInvNameField;
-    @FXML
-    private TextField addInvQtyField;
-    @FXML
-    private TextField addInvUPField;
-    @FXML
-    private TextField updateInvNameField;
-    @FXML
-    private TextField updateInvQtyField;
-    @FXML
-    private TextField updateInvUPField;
-    @FXML
-    private TextField addEmpNameField;
-    @FXML
-    private TextField addEmpTypeField;
-    @FXML
-    private TextField addEmpEmailField;
-    @FXML
-    private TextField addEmpPhoneField;
-    @FXML
-    private TextField updateEmpTargetNameField;
-    @FXML
-    private TextField updateEmpNewNameField;
-    @FXML
-    private TextField updateEmpTypeField;
-    @FXML
-    private TextField updateEmpEmailField;
-    @FXML
-    private TextField updateEmpPhoneField;
+    private TextField updateEmpTargetNameField, updateEmpNewNameField, updateEmpTypeField, updateEmpEmailField, updateEmpPhoneField;
     @FXML
     private TextField fireEmpNameField;
     @FXML
-    private Button addMenuButton;
-    @FXML
-    private Button updateMenuButton;
-    @FXML
-    private Button addInvButton;
-    @FXML
-    private Button updateInvButton;
-    @FXML
-    private Button addEmpButton;
-    @FXML
-    private Button updateEmpButton;
-    @FXML
-    private Button fireEmpButton;
+    private Button addEmpButton, updateEmpButton, fireEmpButton;
 
     // @FXML
     // private Button closeButton;
@@ -98,6 +61,9 @@ public class DatabaseController {
     private List<Entry> users = new ArrayList<>();
     public HashSet<String> ingredients;
 
+    //Connection Variable
+    Connection conn;
+    Statement stmt;
 
     // This method runs automatically when the FXML loads
     @FXML
@@ -120,14 +86,6 @@ public class DatabaseController {
     public HashSet<String> getIngredients() {
         HashSet<String> ingredients1 = new HashSet<>();
         try {
-            // Get database creditials
- 
-            // Build the connection
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-
-            // Create statement
-            Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT ingredients FROM menuce;");
 
             while(rs.next()) {
@@ -143,15 +101,9 @@ public class DatabaseController {
                 }
 
             }
-
-            // Close connection
-
-            stmt.close();
-            conn.close();
-
         } catch (Exception e) {
             dbView.setText("Error connecting to database:\n" + e.getMessage());
-             e.printStackTrace();
+            e.printStackTrace();
             System.exit(0);
         }
 
@@ -187,24 +139,9 @@ public class DatabaseController {
     private void query(String query) {
         System.out.println("Attempting query: " + query);
         try {
-            // Get database creditials
- 
-            // Build the connection
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-
-            // Create statement
-            Statement stmt = conn.createStatement();
-            
             stmt.executeUpdate(query);
-
-            // Close connection
-
-            stmt.close();
-            conn.close();
-
         } catch (Exception e) {
-            dbView.setText("Error connecting to database:\n" + e.getMessage());
+            dbView.setText("Error:\n" + e.getMessage());
              e.printStackTrace();
         }
 
@@ -337,14 +274,6 @@ public class DatabaseController {
                     "WHERE sub.\"date\" BETWEEN '" + startStr + "' AND '" + endStr + "';";
 
                 try {
-                    // Get database creditials
-        
-                    // Build the connection
-                    Class.forName("org.postgresql.Driver");
-                    Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-
-                    // Create statement
-                    Statement stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery(sqlStatement);
 
                     dbView.clear();
@@ -369,8 +298,6 @@ public class DatabaseController {
 
                     // Close connection
                     rs.close();
-                    stmt.close();
-                    conn.close();
 
                 } catch (Exception e) {
                     dbView.setText("Error connecting to database:\n" + e.getMessage());
@@ -387,15 +314,6 @@ public class DatabaseController {
         dbView.setText("Query will run here...");
 
         try {
-            // Get database creditials
- 
-            // Build the connection
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-
-            // Create statement
-            Statement stmt = conn.createStatement();
-
             // Run sql query
             String sqlStatement = queryField.getText();
             sqlStatement += ";";
@@ -425,11 +343,9 @@ public class DatabaseController {
 
             // Close connection
             rs.close();
-            stmt.close();
-            conn.close();
 
         } catch (Exception e) {
-            dbView.setText("Error connecting to database:\n" + e.getMessage());
+            dbView.setText("Error:\n" + e.getMessage());
              e.printStackTrace();
         }
     }
@@ -441,12 +357,12 @@ public class DatabaseController {
  
             // Build the connection
             Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
 
             // Create statement
-            Statement stmt = conn.createStatement();
+            stmt = conn.createStatement();
 
-            // Run sql query [update to pull data properly?]
+            // Run sql query
             String sqlStatement = "SELECT * FROM usersce";
             ResultSet rs = stmt.executeQuery(sqlStatement);
 
@@ -457,8 +373,6 @@ public class DatabaseController {
 
             // Close connection
             rs.close();
-            stmt.close();
-            conn.close();
 
         } catch (Exception e) {
             e.printStackTrace();
