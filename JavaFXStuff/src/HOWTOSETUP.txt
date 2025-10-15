@@ -19,8 +19,8 @@ This is how you configure the play button in the top right to actually do someth
 3.1: Module path will be where you store your javafx-sdk/lib. I put mine at the listed path above
 4: Half Profit, as now you should be able to run the GUI
 5: Add "classPaths": [
-        "bin",
-        "lib/postgresql-42.2.8.jar"
+        "${workspaceFolder}/bin",
+        "${workspaceFolder}/lib/postgresql-42.2.8.jar"
         ], to your launch.json, above the vmArgs
 5.1: Just add it to your launch, if you pulled my changes, you should have the postgresql in the lib area already
 6: Full Profit, as now it can pull from the database (if you SQL'd correctly)
