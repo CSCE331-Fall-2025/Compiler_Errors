@@ -1,4 +1,3 @@
-
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.collections.FXCollections;
@@ -253,7 +252,6 @@ public class CashierMenuController {
             e.printStackTrace();
         }
     }
-    
     
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
