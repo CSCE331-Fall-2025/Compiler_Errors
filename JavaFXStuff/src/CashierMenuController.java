@@ -1,5 +1,3 @@
-package src;
-
 import javafx.fxml.FXML;
 import javafx.event.ActionEvent;
 import javafx.scene.control.*;
@@ -48,6 +46,9 @@ public class CashierMenuController {
     private Map<String, MenuItem> menuItemsMap;
     private String currentPerson;
     private int personCounter = 1;
+    private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
+    private dbSetup my = new dbSetup();
+    Connection conn;
     
     @FXML
     public void initialize() {
@@ -79,7 +80,8 @@ public class CashierMenuController {
     
     private void loadMenuItemsFromDatabase() {
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
             String query = "SELECT name, price, ingredients FROM menuce";
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(query);
@@ -104,7 +106,7 @@ public class CashierMenuController {
             
             notesList.add("- Menu loaded: " + menuItemsMap.size() + " items");
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             showError("Database Error", "Failed to load menu items: " + e.getMessage());
             e.printStackTrace();
         }
@@ -253,7 +255,8 @@ public class CashierMenuController {
         }
         
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
             conn.setAutoCommit(false);
             
             LocalDate currentDate = LocalDate.now();
@@ -330,10 +333,12 @@ public class CashierMenuController {
             notesList.add("order completed ready for new order");
             updateReceipt();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             try {
-                DatabaseConnection.getConnection().rollback();
-            } catch (SQLException ex) {
+                Class.forName("org.postgresql.Driver");
+                Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+                conn.rollback();
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
             showError("checkout Error", "failed to process checkout: " + e.getMessage());
