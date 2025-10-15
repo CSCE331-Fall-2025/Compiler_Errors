@@ -1,4 +1,7 @@
+package src;
+
 import javafx.fxml.FXML;
+import javafx.event.ActionEvent;
 import javafx.scene.control.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,6 +22,24 @@ public class CashierMenuController {
     
     @FXML
     private ComboBox<String> personSelector;
+
+    // Menu buttons (from FXML)
+    @FXML
+    private Button orangeChickenBtn;
+    @FXML
+    private Button grilledTeriyakiBtn;
+    @FXML
+    private Button chowMeinBtn;
+    @FXML
+    private Button friedRiceBtn;
+    @FXML
+    private Button stringBeanBtn;
+    @FXML
+    private Button teriyakiChickenBtn;
+    @FXML
+    private Button mushroomChickenBtn;
+    @FXML
+    private Button steamedRiceBtn;
     
     private Order currentOrder;
     private ObservableList<String> receiptItems;
@@ -27,8 +48,6 @@ public class CashierMenuController {
     private Map<String, MenuItem> menuItemsMap;
     private String currentPerson;
     private int personCounter = 1;
-    private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
-    private dbSetup my = new dbSetup();
     
     @FXML
     public void initialize() {
@@ -36,19 +55,21 @@ public class CashierMenuController {
         receiptItems = FXCollections.observableArrayList();
         notesList = FXCollections.observableArrayList();
         personList = FXCollections.observableArrayList("Person 1");
-        menuItemsMap = new HashMap<String, MenuItem>();
+        menuItemsMap = new HashMap<>();
         currentPerson = "Person 1";
         
         receiptListView.setItems(receiptItems);
         notesListView.setItems(notesList);
         
         /* setup person selector if it exists in fxml */
-        if (personSelector != null) {
+            if (personSelector != null) {
             personSelector.setItems(personList);
             personSelector.setValue(currentPerson);
             personSelector.setOnAction(e -> {
                 currentPerson = personSelector.getValue();
                 notesList.add("Selected: " + currentPerson);
+                // reference the event parameter so static checks don't flag it as unused
+                if (e == null) { }
             });
         }
         
@@ -56,14 +77,9 @@ public class CashierMenuController {
         updateReceipt();
     }
     
-    public void addOrder() {
-        return;
-    }
-
     private void loadMenuItemsFromDatabase() {
         try {
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            Connection conn = DatabaseConnection.getConnection();
             String query = "SELECT name, price, ingredients FROM menuce";
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(query);
@@ -80,7 +96,7 @@ public class CashierMenuController {
                 menuItemsMap.put(name.trim().toLowerCase(), item);
                 
                 /* debug output in case it is stucks */
-                // System.out.println("Loaded: '" + name + "' -> key: '" + name.trim().toLowerCase() + "' price: $" + price);
+                System.out.println("Loaded: '" + name + "' -> key: '" + name.trim().toLowerCase() + "' price: $" + price);
             }
             
             rs.close();
@@ -88,7 +104,7 @@ public class CashierMenuController {
             
             notesList.add("- Menu loaded: " + menuItemsMap.size() + " items");
             
-        } catch (Exception e) {
+        } catch (SQLException e) {
             showError("Database Error", "Failed to load menu items: " + e.getMessage());
             e.printStackTrace();
         }
@@ -120,6 +136,80 @@ public class CashierMenuController {
         }
         notesList.add("+ Added " + newPerson);
         updateReceipt();
+    }
+
+    @FXML
+    private void addOrder(ActionEvent event) {
+        // Determine which button was clicked and add that item
+        if (!(event.getSource() instanceof Button)) return;
+        Button btn = (Button) event.getSource();
+
+        // Prefer DB canonical name if available (we'll derive from button text)
+        String text = btn.getText();
+        if (text == null) return;
+
+        // Strip price and any [OUT] markers from the button label
+        text = text.replaceAll("\\[OUT\\]", "").replaceAll("\\$[0-9.,]+", "").trim();
+
+        // Use the cleaned label as the requested item name
+        addItemByName(text);
+    }
+
+    // Helper to add a menu item to the current order using fuzzy lookup
+    private void addItemByName(String itemName) {
+        if (itemName == null) return;
+        String key = itemName.trim().toLowerCase();
+
+        String foundKey = null;
+        if (menuItemsMap.containsKey(key)) {
+            foundKey = key;
+        } else {
+            foundKey = findMenuKeyFor(itemName);
+        }
+
+        if (foundKey != null && menuItemsMap.containsKey(foundKey)) {
+            MenuItem item = menuItemsMap.get(foundKey);
+            currentOrder.addItemToPerson(currentPerson, item);
+            notesList.add("+ Added " + item.getName() + " for " + currentPerson);
+            updateReceipt();
+            System.out.println("Added: " + item.getName() + " ($" + item.getPrice() + ")");
+        } else {
+            notesList.add("⚠ ERROR: " + itemName + " not found in menu");
+            showError("Item Not Found", "Could not find " + itemName + " in the menu database.");
+        }
+    }
+
+    // Simple fuzzy matching: swap two-word tokens, token containment, strip punctuation
+    private String findMenuKeyFor(String itemName) {
+        if (itemName == null) return null;
+        String key = itemName.trim().toLowerCase().replaceAll("[^a-z0-9\\s]", "");
+
+        // direct match
+        if (menuItemsMap.containsKey(key)) return key;
+
+        // two-word swap
+        String[] parts = key.split("\\s+");
+        if (parts.length == 2) {
+            String swapped = parts[1] + " " + parts[0];
+            if (menuItemsMap.containsKey(swapped)) return swapped;
+        }
+
+        // token containment
+        String[] tokens = key.split("\\s+");
+        for (String menuKey : menuItemsMap.keySet()) {
+            boolean all = true;
+            for (String t : tokens) {
+                if (!menuKey.contains(t)) { all = false; break; }
+            }
+            if (all) return menuKey;
+        }
+
+        // fallback contains
+        for (String menuKey : menuItemsMap.keySet()) {
+            if (menuKey.contains(key) || key.contains(menuKey)) return menuKey;
+        }
+
+        return null;
     }
     
     private void updateReceipt() {
@@ -163,8 +253,7 @@ public class CashierMenuController {
         }
         
         try {
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            Connection conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
             
             LocalDate currentDate = LocalDate.now();
@@ -181,13 +270,14 @@ public class CashierMenuController {
             idRs.close();
             idStmt.close();
             
-            /*  inserts the item as a separate row in orderhistoryce*/
+          /*  inserts the item as a separate row in orderhistoryce*/
             String orderQuery = "INSERT INTO orderhistoryce (id, date, time, item, qty, price) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement orderStmt = conn.prepareStatement(orderQuery);
             
+            int orderId = nextId;  // Use same ID for all items in this order
             int batchCount = 0;
             for (MenuItem item : currentOrder.getAllItems()) {
-                orderStmt.setInt(1, nextId++); 
+                orderStmt.setInt(1, orderId); 
                 orderStmt.setDate(2, Date.valueOf(currentDate));
                 orderStmt.setTime(3, Time.valueOf(currentTime));
                 orderStmt.setString(4, item.getName());
@@ -240,18 +330,17 @@ public class CashierMenuController {
             notesList.add("order completed ready for new order");
             updateReceipt();
             
-        } catch (Exception e) {
+        } catch (SQLException e) {
             try {
-                Class.forName("org.postgresql.Driver");
-                Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-                conn.rollback();
-            } catch (Exception ex) {
+                DatabaseConnection.getConnection().rollback();
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
             showError("checkout Error", "failed to process checkout: " + e.getMessage());
             e.printStackTrace();
         }
     }
+    
     
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
