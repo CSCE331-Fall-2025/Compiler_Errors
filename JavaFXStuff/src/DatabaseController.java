@@ -2,6 +2,10 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.Set;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -56,7 +60,9 @@ public class DatabaseController {
     @FXML
     private TextField addEmpPhoneField;
     @FXML
-    private TextField updateEmpNameField;
+    private TextField updateEmpTargetNameField;
+    @FXML
+    private TextField updateEmpNewNameField;
     @FXML
     private TextField updateEmpTypeField;
     @FXML
@@ -90,11 +96,15 @@ public class DatabaseController {
     private dbSetup my = new dbSetup();
     private record Entry(String username, String password, String userType){}; //Special subclass record type
     private List<Entry> users = new ArrayList<>();
-    
+    public HashSet<String> ingredients;
+
+
     // This method runs automatically when the FXML loads
     @FXML
     public void initialize() {
         // Set up what happens when button is clicked
+        ingredients = getIngredients();
+
         queryButton.setOnAction(event -> runQuery());
         filterButton.setOnAction(event -> filterBtn());
         addMenuButton.setOnAction(event -> addMenuBtn());
@@ -105,6 +115,73 @@ public class DatabaseController {
         updateEmpButton.setOnAction(event -> updateEmpBtn());
         fireEmpButton.setOnAction(event -> fireBtn());
         // closeButton.setOnAction(event -> closeWindow());
+    }
+
+    public HashSet<String> getIngredients() {
+        HashSet<String> ingredients1 = new HashSet<>();
+        try {
+            // Get database creditials
+ 
+            // Build the connection
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+            // Create statement
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT ingredients FROM menuce;");
+
+            while(rs.next()) {
+                String row = rs.getString("ingredients");
+                
+                if (row != null && !row.isEmpty()) {
+                    String[] items = row.split(", ");
+                    for (String item : items) {
+                        if (!item.isEmpty()) {
+                            ingredients1.add(item.toLowerCase());
+                        }
+                    }
+                }
+
+            }
+
+            // Close connection
+
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            dbView.setText("Error connecting to database:\n" + e.getMessage());
+             e.printStackTrace();
+            System.exit(0);
+        }
+
+        return ingredients1;
+    }
+
+    private boolean matches(String re, String str) {
+        Pattern p = Pattern.compile(re);
+        Matcher m = p.matcher(str);
+
+        return m.find();
+    }
+
+    private boolean validPhone(String phone) {
+        System.out.println("Validating phone #: " + phone);
+
+        if(phone.length() != "(123) 456-7890".length()) { 
+            System.out.println("Phone # invalid.");
+            return false; 
+        }
+
+        boolean flag = matches("\\([0-9]{3}\\) [0-9]{3}\\-[0-9]{4}", phone);
+        
+        if(flag) {
+            System.out.println("Phone # validated.");
+        } else {
+            System.out.println("Phone # invalid.");
+        }
+
+        return flag;
     }
 
     private void query(String query) {
@@ -129,7 +206,6 @@ public class DatabaseController {
         } catch (Exception e) {
             dbView.setText("Error connecting to database:\n" + e.getMessage());
              e.printStackTrace();
-            System.exit(0);
         }
 
     }
@@ -137,12 +213,21 @@ public class DatabaseController {
     private void addMenuBtn() {
         String name = addMenuNameField.getText();
         String price = addMenuPriceField.getText();
-        String ingredients = addMenuIngredientsField.getText();
+        String ing = addMenuIngredientsField.getText();
         
         if(name.isEmpty()) { return; }
 
-        if(!price.isEmpty() && !ingredients.isEmpty()) {
-            query("INSERT INTO menuce (name, price, ingredients) VALUES (\'" + name + "\', " + price + ", \'" + ingredients + "\');");
+        String[] ingredientsArr = ing.split(", ");
+        for(String i : ingredientsArr) {
+            System.out.println(i);
+            if(!ingredients.contains(i.toLowerCase())) {
+                System.out.println("Menu item add attempt with invalid ingredients.");
+                return;
+            }
+        }
+
+        if(!price.isEmpty() && !ing.isEmpty()) {
+            query("INSERT INTO menuce (name, price, ingredients) VALUES (\'" + name + "\', " + price + ", \'" + ing + "\');");
         }
 
 
@@ -201,7 +286,7 @@ public class DatabaseController {
 
         if(name.isEmpty()) { return; }
 
-        if(!type.isEmpty() && !email.isEmpty() && !phone.isEmpty()) {
+        if(!type.isEmpty() && !email.isEmpty() && !phone.isEmpty() && validPhone(phone)) {
             query("INSERT INTO employeesce (name, employeetype, email, phonenum) VALUES (\'" + name + "\', \'" + type + "\', \'" + email + "\', \'" + phone + "\');");
         }
       
@@ -209,21 +294,25 @@ public class DatabaseController {
     }
 
     private void updateEmpBtn() {
-        String name = updateEmpNameField.getText();
+        String targetName = updateEmpTargetNameField.getText();
+        String newName = updateEmpNewNameField.getText();
         String type = updateEmpTypeField.getText();
         String email = updateEmpEmailField.getText();
         String phone = updateEmpPhoneField.getText();
 
-        if(name.isEmpty()) { return; }
+        if(targetName.isEmpty()) { return; }
 
         if(!type.isEmpty()) {
-            query("UPDATE employeesce SET employeetype = \'" + type + "\' WHERE name = \'" + name + "\';");
+            query("UPDATE employeesce SET employeetype = \'" + type + "\' WHERE name = \'" + targetName + "\';");
         }
         if(!email.isEmpty()) {
-            query("UPDATE employeesce SET email = \'" + email + "\' WHERE name = \'" + name + "\';");
+            query("UPDATE employeesce SET email = \'" + email + "\' WHERE name = \'" + targetName + "\';");
         }
-        if(!phone.isEmpty()) {
-            query("UPDATE employeesce SET phonenum = \'" + phone + "\' WHERE name = \'" + name + "\';");
+        if(!phone.isEmpty() && validPhone(phone)) {
+            query("UPDATE employeesce SET phonenum = \'" + phone + "\' WHERE name = \'" + targetName + "\';");
+        }
+        if(!newName.isEmpty()) {
+            query("UPDATE employeesce SET name = \'" + newName + "\' WHERE name = \'" + targetName + "\';");
         }
       
     }
@@ -286,7 +375,6 @@ public class DatabaseController {
                 } catch (Exception e) {
                     dbView.setText("Error connecting to database:\n" + e.getMessage());
                     e.printStackTrace();
-                    System.exit(0);
                 }
                 
             }    
@@ -343,7 +431,6 @@ public class DatabaseController {
         } catch (Exception e) {
             dbView.setText("Error connecting to database:\n" + e.getMessage());
              e.printStackTrace();
-            System.exit(0);
         }
     }
 
@@ -375,7 +462,6 @@ public class DatabaseController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(0);
         }
     }
 
