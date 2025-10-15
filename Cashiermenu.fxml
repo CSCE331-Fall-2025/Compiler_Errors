@@ -85,56 +85,50 @@
                         <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                      <children>
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="114.0" prefWidth="118.0" text="Orange Chicken ($6.15)" />
-                        <ImageView fitHeight="93.0" fitWidth="119.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@../resources/Panda_Express_Orange_Chicken_Served_on_Plate.jpg" />
-                           </image>
-                        </ImageView>
-                        <Label alignment="CENTER" text="Orange Chicken " textAlignment="JUSTIFY" textFill="#f4f2f2" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="116.0" prefWidth="142.0" text="Grilled Teriyaki Chicken ($6.50)" GridPane.columnIndex="1" />
+                        <Button fx:id="orangeChickenBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="114.0" prefWidth="118.0" text="Orange Chicken ($6.15)" />
+                        <Button fx:id="grilledTeriyakiBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="116.0" prefWidth="142.0" text="Grilled Teriyaki Chicken ($6.50)" GridPane.columnIndex="1" />
                         <ImageView fitHeight="84.0" fitWidth="83.0" pickOnBounds="true" preserveRatio="true" GridPane.columnIndex="1">
                            <image>
                               <Image url="@../resources/Grilled_Teriyaki_chicken.jpg" />
                            </image>
                         </ImageView>
                         <Label text="Grilled Teriyaki Chicken" GridPane.columnIndex="1" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Chow Mein ($4.20)" GridPane.rowIndex="1" />
+                        <Button fx:id="chowMeinBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Chow Mein ($4.20)" GridPane.rowIndex="1" />
                         <ImageView fitHeight="114.0" fitWidth="119.0" pickOnBounds="true" preserveRatio="true" GridPane.rowIndex="1">
                            <image>
                               <Image url="@../resources/Panda-Express-Chow-Mein-with-tongs.jpg" />
                            </image>
                         </ImageView>
                         <Label text="Chow Mein" textFill="WHITE" GridPane.rowIndex="1" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Fried Rice ($4.20)" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        <Button fx:id="friedRiceBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Fried Rice ($4.20)" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                         <ImageView fitHeight="89.0" fitWidth="82.0" pickOnBounds="true" preserveRatio="true" GridPane.columnIndex="1" GridPane.rowIndex="1">
                            <image>
                               <Image url="@../resources/Panda-Express-Fried-Rice-Tasty-1200.jpg" />
                            </image>
                         </ImageView>
                         <Label text="Fried Rice" textFill="WHITE" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="String Bean Chicken Breast ($6.50)" GridPane.rowIndex="2" />
+                        <Button fx:id="stringBeanBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="String Bean Chicken Breast ($6.50)" GridPane.rowIndex="2" />
                         <ImageView fitHeight="92.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true" GridPane.rowIndex="2">
                            <image>
                               <Image url="@../resources/eod-string-bean-chicken-5-2-2.jpg" />
                            </image>
                         </ImageView>
                         <Label text="String bean chicken breast" textFill="WHITE" GridPane.rowIndex="2" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Teriyaki Chicken ($6.50)" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                        <Button fx:id="teriyakiChickenBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Teriyaki Chicken ($6.50)" GridPane.columnIndex="1" GridPane.rowIndex="2" />
                         <ImageView fitHeight="81.0" fitWidth="98.0" pickOnBounds="true" preserveRatio="true" GridPane.columnIndex="1" GridPane.rowIndex="2">
                            <image>
                               <Image url="@../resources/Panda-Express-Teriyaki-Chicken-Tasty-1200-1.jpg" />
                            </image>
                         </ImageView>
                         <Label text="Teriyaki chicken" textFill="WHITE" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Mushroom Chicken ($6.50)" GridPane.rowIndex="3" />
+                        <Button fx:id="mushroomChickenBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Mushroom Chicken ($6.50)" GridPane.rowIndex="3" />
                         <ImageView fitHeight="82.0" fitWidth="93.0" pickOnBounds="true" preserveRatio="true" GridPane.rowIndex="3">
                            <image>
                               <Image url="@../resources/Mushroom-Chicken-Tasty-1200.jpg" />
                            </image>
                         </ImageView>
                         <Label text="Mushroom chicken" textFill="WHITE" GridPane.rowIndex="3" />
-                        <Button mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Steamed White Rice ($3.00)" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        <Button fx:id="steamedRiceBtn" mnemonicParsing="false" onAction="#addOrder" prefHeight="279.0" prefWidth="155.0" text="Steamed White Rice ($3.00)" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                         <ImageView fitHeight="78.0" fitWidth="282.0" pickOnBounds="true" preserveRatio="true" GridPane.columnIndex="1" GridPane.rowIndex="3">
                            <image>
                               <Image url="@../resources/steamed_white_rice.jpg" />
@@ -161,8 +155,16 @@
                   <Label text="Purchases/ Receipt" BorderPane.alignment="CENTER" />
                </top>
             </BorderPane>
+            <BorderPane layoutX="810.0" layoutY="12.0" prefHeight="100.0" prefWidth="180.0">
+               <top>
+                  <Label text="Select Person" BorderPane.alignment="CENTER" />
+               </top>
+               <center>
+                  <ComboBox fx:id="personSelector" prefWidth="180.0" BorderPane.alignment="CENTER" />
+               </center>
+            </BorderPane>
             <Button layoutX="644.0" layoutY="481.0" mnemonicParsing="false" onAction="#handleCheckout" text="Checkout" />
-            <Button layoutX="367.0" layoutY="481.0" mnemonicParsing="false" onAction="#addNewPerson" text="add person" />
+            <Button layoutX="367.0" layoutY="481.0" mnemonicParsing="false" onAction="#addNewPerson" text="Add Person" />
       </children>
     </AnchorPane>
   </children>
