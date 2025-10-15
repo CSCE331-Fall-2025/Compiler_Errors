@@ -270,13 +270,14 @@ public class CashierMenuController {
             idRs.close();
             idStmt.close();
             
-            /*  inserts the item as a separate row in orderhistoryce*/
+          /*  inserts the item as a separate row in orderhistoryce*/
             String orderQuery = "INSERT INTO orderhistoryce (id, date, time, item, qty, price) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement orderStmt = conn.prepareStatement(orderQuery);
             
+            int orderId = nextId;  // Use same ID for all items in this order
             int batchCount = 0;
             for (MenuItem item : currentOrder.getAllItems()) {
-                orderStmt.setInt(1, nextId++); 
+                orderStmt.setInt(1, orderId); 
                 orderStmt.setDate(2, Date.valueOf(currentDate));
                 orderStmt.setTime(3, Time.valueOf(currentTime));
                 orderStmt.setString(4, item.getName());
