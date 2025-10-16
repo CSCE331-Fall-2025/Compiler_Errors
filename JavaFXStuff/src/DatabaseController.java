@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -8,13 +9,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ChoiceBox;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.scene.Node;
+
+//import io.github.cdimascio.dotenv.*;
 
 public class DatabaseController {
     
@@ -64,10 +73,12 @@ public class DatabaseController {
     // @FXML
     // private Button closeButton;
     
+
+    //private static Dotenv dotenv = Dotenv.load();
     
     private String lastStatement = "";
     
-    private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
+    private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database";//dotenv.get("DB_URL"); //database location
     private dbSetup my = new dbSetup();
     private record Entry(String username, String password, String userType){}; //Special subclass record type
     private List<Entry> users = new ArrayList<>();
@@ -78,6 +89,7 @@ public class DatabaseController {
     Statement stmt;
 
     // This method runs automatically when the FXML loads
+    @SuppressWarnings("unchecked")
     @FXML
     public void initialize() {
         // Set up what happens when button is clicked
@@ -456,7 +468,7 @@ public class DatabaseController {
             // Build the connection
             Class.forName("org.postgresql.Driver");
             conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-
+            //conn = DriverManager.getConnection(DB_URL, dotenv.get("DB_USER"), dotenv.get("DB_PASS"));
             // Create statement
             stmt = conn.createStatement();
 
@@ -496,5 +508,24 @@ public class DatabaseController {
             }
         }
         return "No User Found";
+    }
+
+    //In initialize, just do event -> swapToCashier(event)
+    //For CashierMenuController, rename to smth like swapToManager if you want and change the loader to load MANAGER.fxml instead
+    //Utilize the same process as above
+    public void swapToCashier(ActionEvent event)
+    {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/Cashiermenu.fxml"));
+        try
+        {
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 }
