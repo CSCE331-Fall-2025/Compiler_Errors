@@ -256,7 +256,7 @@ public class CashierMenuController {
             stmt.close();
             notesList.add("- Menu loaded: " + menuItemsMap.size() + " items");
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             showError("Database Error", "Failed to load menu items: " + e.getMessage());
             e.printStackTrace();
         }
@@ -545,7 +545,8 @@ public class CashierMenuController {
         }
         
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
             conn.setAutoCommit(false);
             
             LocalDate currentDate = LocalDate.now();
@@ -628,10 +629,12 @@ public class CashierMenuController {
             notesList.add("Ready for new order");
             updateReceipt();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             try {
-                DatabaseConnection.getConnection().rollback();
-            } catch (SQLException ex) {
+                Class.forName("org.postgresql.Driver");
+                Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+                conn.rollback();
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
             showError("checkout Error", "failed to process: " + e.getMessage());
