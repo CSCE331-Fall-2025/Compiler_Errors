@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -7,16 +8,28 @@ import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.Arrays;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ListView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.scene.Node;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+
 
 public class DatabaseController {
     
@@ -75,12 +88,15 @@ public class DatabaseController {
     private DatePicker usageEndDate;
     @FXML
     private Button usageReportBtn;
-    // @FXML
-    // private Button closeButton;
+    @FXML 
+    private javafx.scene.control.MenuItem swapPage;
+    @FXML
+    private DatePicker xzReportDate;
+    @FXML 
+    private TextField currentHourField;
     
-    
-    private String lastStatement = "";
-    
+    private String lastStatement;
+
     private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
     private dbSetup my = new dbSetup();
     private record Entry(String username, String password, String userType){}; //Special subclass record type
@@ -96,15 +112,16 @@ public class DatabaseController {
     public void initialize() {
         restockListView.setStyle("-fx-font-family: 'Monospaced';");
         usageListView.setStyle("-fx-font-family: 'Monospaced';");
+        reportView.setStyle("-fx-font-family: 'Monospaced';");
         refreshBtn();
         // Set up what happens when button is clicked
         ObservableList<String> reports = FXCollections.observableArrayList(
-             "Top 5 Menu items", "Top 10 Sales Days", "All time profit"
+             "Top 5 Menu items", "Top 10 Sales Days", "All time profit", "X Report", "Z Report"
         );
         reportBox.setItems(reports);
 
         ingredients = getIngredients();
-
+        swapPage.setOnAction(event -> swapToCashier(event));
         usageReportBtn.setOnAction(event -> usageReportButton());
         refreshBtn.setOnAction(event -> refreshBtn());
         reportButton.setOnAction(event -> reportBtn());
@@ -118,6 +135,22 @@ public class DatabaseController {
         updateEmpButton.setOnAction(event -> updateEmpBtn());
         fireEmpButton.setOnAction(event -> fireBtn());
         // closeButton.setOnAction(event -> closeWindow());
+    }
+
+    public void swapToCashier(ActionEvent event)
+    {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/Cashiermenu.fxml"));
+        try
+        {
+            Parent root = loader.load();
+            Stage stage = (Stage)((javafx.scene.control.MenuItem)event.getSource()).getParentPopup().getOwnerWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void usageReportButton() {
@@ -207,6 +240,62 @@ public class DatabaseController {
 
     }
 
+    public void getXReport(int currentHour)
+    {
+        String date = xzReportDate.getValue().toString();
+        
+        //Stores amount of an item sold
+        HashMap<Integer, Integer> quantitySold = new HashMap<>();
+        //Total value per hour
+        double totalVal = 0;
+        
+        try
+        {
+            String qry = "SELECT EXTRACT(HOUR FROM time) AS hour, item, qty, price from orderhistoryce WHERE \"date\" = '" + date + "' AND EXTRACT(HOUR FROM time) < " + currentHour + ";";
+            System.out.println(qry);
+            ResultSet rs = stmt.executeQuery(qry);
+            System.out.println("Succeeded");
+            while(rs.next())
+            {
+
+                int curHour = rs.getInt("hour");
+                String name = rs.getString("item");
+                int qty = rs.getInt("qty");
+                double price = rs.getDouble("price");
+
+                //Quantity storage
+                int temp;
+                if(quantitySold.get(curHour) == null)
+                {
+                    temp = 0;
+                }
+                else
+                {
+                    temp = quantitySold.get(curHour);
+                }
+                temp += qty;
+                //Sets quantitySold[name] = temp;
+                quantitySold.put(curHour,temp);
+
+                //Stores total value for the entire day
+                totalVal += (qty * price);
+            }
+
+            reportView.clear();
+            reportView.appendText(String.format("%-15s%s\n","Hour", "Items Sold"));
+            Integer[] arr = quantitySold.keySet().toArray(new Integer[quantitySold.keySet().size()]);
+            Arrays.sort(arr);
+
+            for(Integer key : arr) {
+                reportView.appendText(String.format("%-15s%s\n", key, quantitySold.get(key)));
+            }
+        }
+        catch(SQLException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     public void reportBtn() {
         String value = reportBox.getValue().toString();
 
@@ -231,6 +320,19 @@ public class DatabaseController {
 
             if(value.equals("All time profit")) {
                 qry = "SELECT SUM(price * qty) AS profit FROM orderhistoryce;";
+            }
+
+            if(value.equals("X Report")) {
+                
+                String currentHourStr = currentHourField.getText();
+                int currentHour = Integer.parseInt(currentHourStr);
+                getXReport(currentHour);
+                return;
+            }
+
+            if(value.equals("Z Report")) {
+                getXReport(23);
+                return;
             }
 
             if(qry.isEmpty()) { return; }
