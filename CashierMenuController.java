@@ -53,7 +53,7 @@ public class CashierMenuController {
         if (personSelector != null) {
             personSelector.setItems(personList);
             personSelector.setValue(currentPerson);
-            personSelector.setOnAction(e -> {
+            personSelector.setOnAction(_ -> {
                 currentPerson = personSelector.getValue();
                 notesList.add("Selected: " + currentPerson);
             });
@@ -64,6 +64,48 @@ public class CashierMenuController {
         updateReceipt();
     }
     
+    private List<String> checkInventoryAvailability(MenuItem item) {
+    List<String> missingIngredients = new java.util.ArrayList<>();
+    
+    try {
+        Connection conn = DatabaseConnection.getConnection();
+        String ingredients = item.getIngredients();
+        
+        if (ingredients == null || ingredients.isEmpty()) {
+            return missingIngredients;
+        }
+        
+        String[] ingredientList = ingredients.split(",");
+        
+        for (String ingredient : ingredientList) {
+            String ingredientName = ingredient.trim();
+            
+            String query = "SELECT name, quantity FROM inventoryce WHERE LOWER(name) = LOWER(?)";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, ingredientName);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int quantity = rs.getInt("quantity");
+                String actualName = rs.getString("name");
+                
+                if (quantity <= 0) {
+                    missingIngredients.add(actualName + " (Qty: " + quantity + ")");
+                }
+            } else {
+                missingIngredients.add(ingredientName + " (Not in inventory)");
+            }
+            
+            rs.close();
+            stmt.close();
+        }
+        
+    } catch (SQLException e) {
+        System.out.println("Error checking inventory: " + e.getMessage());
+    }
+    
+    return missingIngredients;
+}
     private void loadMenuItemsFromDatabase() {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -118,7 +160,7 @@ public class CashierMenuController {
             itemBtn.setPrefHeight(80);
             itemBtn.setStyle("-fx-font-size: 11; -fx-text-alignment: center; -fx-padding: 10;");
             itemBtn.setWrapText(true);
-            itemBtn.setOnAction(e -> addItemByName(item.getName()));
+            itemBtn.setOnAction(_ -> addItemByName(item.getName()));
             
             grid.add(itemBtn, col, row);
             
@@ -291,11 +333,21 @@ public class CashierMenuController {
 
         if (foundKey != null && menuItemsMap.containsKey(foundKey)) {
             MenuItem item = menuItemsMap.get(foundKey);
+             List<String> missingIngredients = checkInventoryAvailability(item);
+        if (!missingIngredients.isEmpty()) {
+            StringBuilder msg = new StringBuilder("Cannot add " + item.getName() + "\n\nInsufficient inventory:\n");
+            for (String ing : missingIngredients) {
+                msg.append("• ").append(ing).append("\n");
+            }
+            showError("Inventory Error", msg.toString());
+            notesList.add("blocked: " + item.getName() + " (no stock)");
+            return;
+        }
             currentOrder.addItemToPerson(currentPerson, item);
             notesList.add("+ Added " + item.getName());
             updateReceipt();
         } else {
-            showError("Item Not Found", "Could not find " + itemName);
+            showError("item Not Found", "could not find " + itemName);
         }
     }
 
@@ -333,7 +385,7 @@ public class CashierMenuController {
         Map<String, List<MenuItem>> personOrders = currentOrder.getPersonOrders();
         
         if (personOrders.isEmpty()) {
-            receiptItems.add("No items added yet");
+            receiptItems.add("no items added yet");
             return;
         }
         
@@ -389,7 +441,6 @@ public class CashierMenuController {
             String orderQuery = "INSERT INTO orderhistoryce (id, date, time, item, qty, price) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement orderStmt = conn.prepareStatement(orderQuery);
             
-            int batchCount = 0;
             for (MenuItem item : currentOrder.getAllItems()) {
                 orderStmt.setInt(1, nextId++);
                 orderStmt.setDate(2, Date.valueOf(currentDate));
@@ -398,7 +449,6 @@ public class CashierMenuController {
                 orderStmt.setInt(5, 1); 
                 orderStmt.setDouble(6, item.getPrice());
                 orderStmt.addBatch();
-                batchCount++;
             }
             
             orderStmt.executeBatch();
@@ -457,7 +507,7 @@ public class CashierMenuController {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-            showError("Checkout Error", "Failed to process: " + e.getMessage());
+            showError("checkout Error", "failed to process: " + e.getMessage());
         }
     }
     
@@ -562,7 +612,7 @@ public class CashierMenuController {
             });
             statusCol.setPrefWidth(100);
             
-            table.getColumns().addAll(nameCol, qtyCol, priceCol, minCol, statusCol);
+            table.getColumns().addAll(java.util.Arrays.asList(nameCol, qtyCol, priceCol, minCol, statusCol));
             
             while (rs.next()) {
                 items.add(new InventoryItem(rs.getString("name"), rs.getInt("quantity"), 
@@ -581,7 +631,7 @@ public class CashierMenuController {
             buttonBox.setPadding(new Insets(10));
             Button restockBtn = new Button("Restock Item");
             restockBtn.setStyle("-fx-font-size: 12; -fx-padding: 8;");
-            restockBtn.setOnAction(e -> showRestockDialog(items));
+            restockBtn.setOnAction(_ -> showRestockDialog(items));
             buttonBox.getChildren().add(restockBtn);
             content.getChildren().add(buttonBox);
             
