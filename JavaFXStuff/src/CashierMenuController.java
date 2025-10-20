@@ -273,41 +273,59 @@ public class CashierMenuController {
     private void handleDeleteItem() {
         String selectedReceiptItem = receiptListView.getSelectionModel().getSelectedItem();
 
+        // Basic guards
         if (selectedReceiptItem == null || currentOrder == null || currentOrder.isEmpty()) {
             showError("No Selection", "Please select an item from the receipt list to delete.");
             return;
         }
 
-        // Exclude headers and subtotal lines
-        if (selectedReceiptItem.startsWith("------") ||
-            selectedReceiptItem.startsWith("  Subtotal:") ||
-            selectedReceiptItem.startsWith("________________") ||
-            selectedReceiptItem.startsWith("Subtotal (pre-tax)")) {
+        // Quick reject for lines that are clearly not item lines
+        if (!selectedReceiptItem.startsWith("  ") || selectedReceiptItem.trim().isEmpty()) {
             showError("Invalid Selection", "Please select a specific menu item (not a header or subtotal) to delete.");
             return;
         }
 
-        // Must look like an actual item line: starts with two spaces and contains "........$"
-        if (!selectedReceiptItem.startsWith("  ") || !selectedReceiptItem.contains("........$")) {
+        // Find the last '$' to locate the price part (must exist for an item line)
+        int dollarIdx = selectedReceiptItem.lastIndexOf('$');
+        if (dollarIdx == -1) {
             showError("Invalid Selection", "Please select a specific menu item (not a header or subtotal) to delete.");
             return;
         }
 
-        // Find which person this belongs to
+        // Extract item name portion robustly:
+        // substring from char index 2 (we expect two leading spaces) up to the dollar sign,
+        // then strip trailing dots/spaces.
+        String rawNamePart;
+        try {
+            rawNamePart = selectedReceiptItem.substring(2, dollarIdx);
+        } catch (IndexOutOfBoundsException ex) {
+            showError("Format Error", "Could not parse item name from selection.");
+            return;
+        }
+
+        // Remove trailing dots and whitespace used as filler, then trim
+        String itemName = rawNamePart.replaceAll("[\\.\\s]+$", "").trim();
+        if (itemName.isEmpty()) {
+            showError("Format Error", "Could not parse item name from selection.");
+            return;
+        }
+
+        // Find which person this belongs to by scanning upward for a header like:
+        // "------ Person X ------" (allow flexible number of dashes and spacing)
         String person = null;
         ObservableList<String> allItems = receiptListView.getItems();
         int selectedIndex = receiptListView.getSelectionModel().getSelectedIndex();
+        if (selectedIndex < 0) {
+            showError("Selection Error", "Please select an item from the receipt.");
+            return;
+        }
 
+        java.util.regex.Pattern headerPattern = java.util.regex.Pattern.compile("^\\s*-{2,}\\s*(.+?)\\s*-{2,}\\s*$");
         for (int i = selectedIndex - 1; i >= 0; i--) {
-            String item = allItems.get(i);
-            if (item.startsWith("------ ")) {
-                int start = 7;
-                int end = item.lastIndexOf(" ------");
-                if (end > start) {
-                    person = item.substring(start, end).trim();
-                } else {
-                    person = item.replace("------", "").trim();
-                }
+            String candidate = allItems.get(i);
+            java.util.regex.Matcher m = headerPattern.matcher(candidate);
+            if (m.matches()) {
+                person = m.group(1).trim();
                 break;
             }
         }
@@ -317,33 +335,57 @@ public class CashierMenuController {
             return;
         }
 
-        // Parse the item name (text before the " ........")
-        int endIndex = selectedReceiptItem.indexOf(" ........");
-        if (endIndex <= 2) {
-            showError("Format Error", "Could not parse item name from selection.");
-            return;
-        }
-
-        String itemName = selectedReceiptItem.substring(2, endIndex).trim();
-
-        // Confirm deletion
+        // Confirm deletion with the user
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Deletion");
         alert.setHeaderText("Delete Item");
         alert.setContentText("Are you sure you want to delete '" + itemName + "' from " + person + "'s order?");
         Optional<ButtonType> result = alert.showAndWait();
 
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            boolean removed = currentOrder.removeItemFromPerson(person, itemName);
-            if (removed) {
-                notesList.add("- Deleted " + itemName + " for " + person);
-                updateReceipt();
-                receiptListView.getSelectionModel().clearSelection();
-            } else {
-                showError("Deletion Failed", "Item not found in " + person + "'s order. Please verify and try again.");
+        if (!(result.isPresent() && result.get() == ButtonType.OK)) {
+            return;
+        }
+
+        // Try direct removal first (assumes Order.removeItemFromPerson requires exact name)
+        boolean removed = currentOrder.removeItemFromPerson(person, itemName);
+
+        // Fallbacks: try case-insensitive match or substring match against that person's items
+        if (!removed) {
+            List<MenuItem> personItems = currentOrder.getPersonOrders().get(person);
+            if (personItems != null) {
+                // 1) try exact case-insensitive match
+                for (MenuItem mi : new java.util.ArrayList<>(personItems)) {
+                    if (mi.getName().equalsIgnoreCase(itemName)) {
+                        removed = currentOrder.removeItemFromPerson(person, mi.getName());
+                        if (removed) break;
+                    }
+                }
             }
         }
+
+        if (!removed) {
+            // 2) try substring match (useful for small differences in punctuation/spacing)
+            List<MenuItem> personItems2 = currentOrder.getPersonOrders().get(person);
+            if (personItems2 != null) {
+                for (MenuItem mi : new java.util.ArrayList<>(personItems2)) {
+                    if (mi.getName().toLowerCase().contains(itemName.toLowerCase()) ||
+                        itemName.toLowerCase().contains(mi.getName().toLowerCase())) {
+                        removed = currentOrder.removeItemFromPerson(person, mi.getName());
+                        if (removed) break;
+                    }
+                }
+            }
+        }
+
+        if (removed) {
+            notesList.add("- Deleted " + itemName + " for " + person);
+            updateReceipt();
+            receiptListView.getSelectionModel().clearSelection();
+        } else {
+            showError("Deletion Failed", "Item not found in " + person + "'s order. Please verify and try again.");
+        }
     }
+
 
 
     @FXML
