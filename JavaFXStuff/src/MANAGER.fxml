@@ -32,8 +32,11 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+<?import javafx.scene.control.Accordion?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
@@ -44,7 +47,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<VBox fx:controller="DatabaseController" prefHeight="738.0" prefWidth="748.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<VBox prefHeight="846.0" prefWidth="1172.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="DatabaseController">
   <children>
     <MenuBar prefHeight="42.0" prefWidth="669.0" VBox.vgrow="NEVER">
       <menus>
@@ -85,11 +88,11 @@
         </Menu>
       </menus>
     </MenuBar>
-    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="712.0" prefWidth="770.0" VBox.vgrow="ALWAYS">
+    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="790.0" prefWidth="1236.0" VBox.vgrow="ALWAYS">
       <children>
             <Button fx:id="queryButton" layoutX="27.0" layoutY="306.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="255.0" text="Query" />
             <TextField fx:id="queryField" alignment="TOP_LEFT" layoutX="27.0" layoutY="131.0" prefHeight="173.0" prefWidth="255.0" promptText="SQL Query here" />
-            <Button fx:id="filterButton" layoutX="230.0" layoutY="54.0" mnemonicParsing="false" text="Filter" />
+            <Button fx:id="filterButton" layoutX="215.0" layoutY="51.0" mnemonicParsing="false" text="Filter by Item" />
             <DatePicker fx:id="endDate" layoutX="27.0" layoutY="78.0" />
             <DatePicker fx:id="startDate" layoutX="28.0" layoutY="26.0" />
             <Text layoutX="67.0" layoutY="18.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Start Date" />
@@ -128,18 +131,38 @@
             <TextField fx:id="addEmpTypeField" layoutX="184.0" layoutY="600.0" />
             <TextField fx:id="addEmpEmailField" layoutX="340.0" layoutY="600.0" />
             <TextField fx:id="addEmpPhoneField" layoutX="496.0" layoutY="600.0" />
-            <TextField fx:id="updateEmpNameField" layoutX="28.0" layoutY="637.0" />
-            <TextField fx:id="updateEmpTypeField" layoutX="184.0" layoutY="637.0" />
-            <TextField fx:id="updateEmpEmailField" layoutX="340.0" layoutY="637.0" />
-            <TextField fx:id="updateEmpPhoneField" layoutX="496.0" layoutY="637.0" />
+            <TextField fx:id="updateEmpTargetNameField" layoutX="28.0" layoutY="678.0" />
+            <TextField fx:id="updateEmpNewNameField" layoutX="184.0" layoutY="678.0" />
+            <TextField fx:id="updateEmpTypeField" layoutX="340.0" layoutY="678.0" />
+            <TextField fx:id="updateEmpEmailField" layoutX="496.0" layoutY="678.0" />
             <Text layoutX="90.0" layoutY="596.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
             <Text layoutX="246.0" layoutY="596.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Type" />
             <Text layoutX="403.0" layoutY="592.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Email" />
             <Text layoutX="558.0" layoutY="594.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Phone" />
             <Button fx:id="addEmpButton" layoutX="660.0" layoutY="600.0" mnemonicParsing="false" text="Add Employee" />
-            <Button fx:id="updateEmpButton" layoutX="659.0" layoutY="637.0" mnemonicParsing="false" text="Update Employee" />
-            <TextField fx:id="fireEmpNameField" layoutX="26.0" layoutY="677.0" />
-            <Button fx:id="fireEmpButton" layoutX="201.0" layoutY="677.0" mnemonicParsing="false" text="Fire Employee" />
+            <Button fx:id="updateEmpButton" layoutX="814.0" layoutY="678.0" mnemonicParsing="false" text="Update Employee" />
+            <TextField fx:id="fireEmpNameField" layoutX="26.0" layoutY="718.0" />
+            <Button fx:id="fireEmpButton" layoutX="201.0" layoutY="718.0" mnemonicParsing="false" text="Fire Employee" />
+            <Text layoutX="90.0" layoutY="667.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+            <Text layoutX="218.0" layoutY="667.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Name" />
+            <Text layoutX="386.0" layoutY="669.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Type" />
+            <Text layoutX="540.0" layoutY="669.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Email" />
+            <TextField fx:id="updateEmpPhoneField" layoutX="654.0" layoutY="678.0" />
+            <Text layoutX="698.0" layoutY="669.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Phone" />
+            <Accordion layoutX="628.0" layoutY="42.0" />
+            <ChoiceBox fx:id="reportBox" layoutX="623.0" layoutY="29.0" prefWidth="150.0" />
+            <Button fx:id="reportButton" layoutX="788.0" layoutY="29.0" mnemonicParsing="false" text="Create Report" />
+            <TextArea fx:id="reportView" layoutX="621.0" layoutY="66.0" prefHeight="268.0" prefWidth="255.0" />
+            <ListView fx:id="restockListView" layoutX="893.0" layoutY="63.0" prefHeight="268.0" prefWidth="266.0" />
+            <Text layoutX="935.0" layoutY="56.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Restock List" />
+            <Button fx:id="refreshBtn" layoutX="1044.0" layoutY="35.0" mnemonicParsing="false" text="Refresh" />
+            <ListView fx:id="usageListView" layoutX="893.0" layoutY="364.0" prefHeight="255.0" prefWidth="266.0" />
+            <DatePicker fx:id="usageStartDate" layoutX="701.0" layoutY="368.0" />
+            <DatePicker fx:id="usageEndDate" layoutX="701.0" layoutY="414.0" />
+            <Text layoutX="753.0" layoutY="359.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Window Start" />
+            <Text layoutX="757.0" layoutY="410.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Window End" />
+            <Button fx:id="usageReportBtn" layoutX="744.0" layoutY="451.0" mnemonicParsing="false" text="Usage Report" />
+            <Text layoutX="997.0" layoutY="359.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Usage Report " />
       </children>
     </AnchorPane>
   </children>

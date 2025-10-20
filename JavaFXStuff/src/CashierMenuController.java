@@ -1,5 +1,3 @@
-package src;
-
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -20,31 +18,65 @@ import javax.swing.table.TableColumn;
 import javax.swing.text.TableView;
 import javax.swing.text.html.ListView;
 
+import javafx.event.ActionEvent;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import java.io.IOException;
+
+/**
+ * The cashier side of the ordering system.
+ * This class provides methods for initializing, swapping to manager page, finding person for item,  updating remove button state, setting up the reciept list
+ * view, removing selected item, checking inventory availability, loading menu items from database, generating menu buttons, determining category, adding new seasonal item,
+ * validating seasonal item data, saving seasonal item to database, adding new person, adding item by name, finding menu key for item name, updating receipt, handling checkout,
+ * updating inventory from order, checking low inventory, and viewing inventory management.
+ * Additionally it contained a restock dialog for inventory management, as well as displaying errors and showing info alerts on the UI.
+ * @author Syed Kazmi and Evan Luu
+ * @version 1.0
+ * @since 2025-10-01
+ */
+
 public class CashierMenuController {
     
     @FXML
-    private ListView<String> notesListView;
+    private ListView<String> notesListView; //additional notes list view
     
     @FXML
-    private ListView<String> receiptListView;
+    private ListView<String> receiptListView;// receipt list view
     
     @FXML
-    private ComboBox<String> personSelector;
+    private ComboBox<String> personSelector;// person selector for menu
     
     @FXML
-    private VBox menuContainer;
+    private VBox menuContainer; // menu container for buttons
+
+    @FXML
+    private Button removeItemBtn; // delete selected item button
+
+    @FXML 
+    private javafx.scene.control.MenuItem swapPage; // swap to manager page menu item
     
-    private Order currentOrder;
-    private ObservableList<String> receiptItems;
-    private ObservableList<String> notesList;
-    private ObservableList<String> personList;
-    private Map<String, MenuItem> menuItemsMap;
-    private String currentPerson;
-    private int personCounter = 1;
-    
+    private Order currentOrder; // The main object holding all items and traching orders by person
+    private ObservableList<String> receiptItems; // Data model for the receipt list view
+    private ObservableList<String> notesList; // Data model for the notes list view
+    private ObservableList<String> personList; // Data model for the person selector
+    private Map<String, MenuItem> menuItemsMap; // Map of menu items loaded from database
+    private String currentPerson; // Current selected person for ordering
+    private int personCounter = 1; // Counter for person numbering
+    private int selectedReceiptIndex = -1; // Index of the currently selected receipt item
+
+    // Public Methods
+
+    /**
+     * Intializes the controller and is called immediately after the Cashiermenu.fxml is loaded.
+     * <p>
+     * It initializes the current order, sets up event handlers, loads menu items from the database, and generates dynamic menu buttons based of the entries in the database.
+     */
     @FXML
     public void initialize() {
         currentOrder = new Order();
+        swapPage.setOnAction(event -> swapToManager(event));
         receiptItems = FXCollections.observableArrayList();
         notesList = FXCollections.observableArrayList();
         personList = FXCollections.observableArrayList("Person 1");
@@ -57,7 +89,7 @@ public class CashierMenuController {
         if (personSelector != null) {
             personSelector.setItems(personList);
             personSelector.setValue(currentPerson);
-            personSelector.setOnAction(e -> {
+            personSelector.setOnAction(_ -> {
                 currentPerson = personSelector.getValue();
                 notesList.add("Selected: " + currentPerson);
             });
@@ -68,6 +100,194 @@ public class CashierMenuController {
         updateReceipt();
     }
     
+    /** Handles page swap from cashier to manager view of the POS
+     * It loads MANAGER.fxml specifically and sets the scene to the manager view.
+     * 
+     * @param event The ActionEvent triggered by selecting the swap page menu item.
+     */
+    public void swapToManager(ActionEvent event)
+    {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/MANAGER.fxml"));
+        try
+        {
+            Parent root = loader.load();
+            Stage stage = (Stage)((javafx.scene.control.MenuItem)event.getSource()).getParentPopup().getOwnerWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Finds the person associated with the item at the given receipt.
+     * Searches backwards from the receipt index to locate the nearest person header.
+     * @param receiptIndex
+     * @return The name of the person (e.g. "Person 1") or null if not found.
+     */
+    private String findPersonForItem(int receiptIndex) {
+        for (int i = receiptIndex; i >= 0; i--) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("------ ") && line.endsWith(" ------")) {
+                return line.substring(7, line.length() - 7); 
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Update the state of the {@code removeItemBtn} based on the selected receipt item.
+     * Food item lines enable the button, while headers, subtotals, taxes, and empty lines disable it.
+     */
+    private void updateRemoveButtonState() {
+        if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
+            if (removeItemBtn != null) removeItemBtn.setDisable(true);
+            return;
+        }
+        
+        String selected = receiptItems.get(selectedReceiptIndex);
+        
+        if (selected.startsWith("------ ") || selected.contains("Subtotal:") || 
+            selected.contains("Tax") || selected.startsWith("_") || selected.isEmpty()) {
+            if (removeItemBtn != null) removeItemBtn.setDisable(true);
+        } else {
+            if (removeItemBtn != null) removeItemBtn.setDisable(false);
+        }
+    }
+
+    /**
+     * Sets the mouse click event handler for the receipt list view.
+     * Updates the remove button state based on the selected item.
+     */
+    private void setupReceiptListView() {
+        receiptListView.setOnMouseClicked(_ -> {
+            selectedReceiptIndex = receiptListView.getSelectionModel().getSelectedIndex();
+            updateRemoveButtonState();
+        });
+    }
+
+    /**
+     * Removes the selected item from the receipt and updates the order accordingly.
+     * It validates the selection, identifies the associated person, removes the item from the order, while also updating the receipt display.
+     */
+    @FXML
+    private void removeSelectedItem() {
+        if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
+            showError("Selection Error", "Please select an item to remove");
+            return;
+        }
+        
+        String selectedLine = receiptItems.get(selectedReceiptIndex);
+        
+        if (selectedLine.startsWith("------ ") || selectedLine.contains("Subtotal:") || 
+            selectedLine.contains("Tax") || selectedLine.startsWith("_") || selectedLine.isEmpty()) {
+            showError("Invalid Selection", "Please select a food item to remove");
+            return;
+        }
+        
+        String itemName = selectedLine.trim().split("\\s+\\.+\\$")[0].trim();
+        
+        String personForItem = findPersonForItem(selectedReceiptIndex);
+        
+        if (personForItem == null) {
+            showError("Error", "Could not determine which person this item belongs to");
+            return;
+        }
+        
+        int headerIndex = -1;
+        for (int i = selectedReceiptIndex; i >= 0; i--) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("------ ") && line.endsWith(" ------")) {
+                headerIndex = i;
+                break;
+            }
+        }
+        if (headerIndex == -1) {
+            showError("Error", "Could not find person header for the selected item");
+            return;
+        }
+        
+        int itemIndexWithinPerson = -1;
+        int count = 0;
+        for (int i = headerIndex + 1; i <= selectedReceiptIndex && i < receiptItems.size(); i++) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("  ") && !line.contains("Subtotal:") && !line.contains("Tax")
+                && !line.startsWith("------") && !line.trim().isEmpty()) {
+                if (i == selectedReceiptIndex) {
+                    itemIndexWithinPerson = count;
+                    break;
+                }
+                count++;
+            } else if (line.contains("Subtotal:")) {
+                break;
+            }
+        }
+        
+        if (itemIndexWithinPerson < 0) {
+            showError("Error", "Could not determine item index to remove");
+            return;
+        }
+        
+        currentOrder.removeItemFromPerson(personForItem, itemIndexWithinPerson);
+        notesList.add("- Removed: " + itemName + " from " + personForItem);
+        selectedReceiptIndex = -1;
+        updateReceipt();
+        updateRemoveButtonState();
+    }
+
+    /**
+     * Check the inventoryce for all ingredients required for the given menu item.
+     * @param item
+     * @return A list of missing ingredients with their quantities if insufficient stock is found.
+     */
+    private List<String> checkInventoryAvailability(MenuItem item) {
+    List<String> missingIngredients = new java.util.ArrayList<>();
+    
+    try {
+        Connection conn = DatabaseConnection.getConnection();
+        String ingredients = item.getIngredients();
+        
+        if (ingredients == null || ingredients.isEmpty()) {
+            return missingIngredients;
+        }
+        
+        String[] ingredientList = ingredients.split(",");
+        
+        for (String ingredient : ingredientList) {
+            String ingredientName = ingredient.trim();
+            
+            String query = "SELECT name, quantity FROM inventoryce WHERE LOWER(name) = LOWER(?)";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, ingredientName);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int quantity = rs.getInt("quantity");
+                String actualName = rs.getString("name");
+                
+                if (quantity <= 0) {
+                    missingIngredients.add(actualName + " (Qty: " + quantity + ")");
+                }
+            } else {
+                missingIngredients.add(ingredientName + " (Not in inventory)");
+            }
+            
+            rs.close();
+            stmt.close();
+        }
+        
+    } catch (SQLException e) {
+        System.out.println("Error checking inventory: " + e.getMessage());
+    }
+    
+    return missingIngredients;
+}
+    /**
+     * Loads menu items from the database into the {@code menuItemsMap}.
+     * It retrieves item details such as name, price, and ingredients, determines their category, and stores them in {@code menuItemsMap} for easy access.
+     */
     private void loadMenuItemsFromDatabase() {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -91,12 +311,15 @@ public class CashierMenuController {
             stmt.close();
             notesList.add("- Menu loaded: " + menuItemsMap.size() + " items");
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             showError("Database Error", "Failed to load menu items: " + e.getMessage());
             e.printStackTrace();
         }
     }
     
+    /**
+     * Generates dynamic menu buttons based on the items loaded in {@code menuItemsMap}.
+     */
     private void generateMenuButtons() {
         if (menuContainer == null) return;
         
@@ -122,7 +345,7 @@ public class CashierMenuController {
             itemBtn.setPrefHeight(80);
             itemBtn.setStyle("-fx-font-size: 11; -fx-text-alignment: center; -fx-padding: 10;");
             itemBtn.setWrapText(true);
-            itemBtn.setOnAction(e -> addItemByName(item.getName()));
+            itemBtn.setOnAction(_ -> addItemByName(item.getName()));
             
             grid.add(itemBtn, col, row);
             
@@ -141,6 +364,13 @@ public class CashierMenuController {
         VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
     }
     
+    /**
+     * Determines the category for a menu item based on its name and ingredients.
+     * (e.g., "entree", "side")
+     * @param name The name of menu item
+     * @param ingredients The ingredients string of the menu item
+     * @return A category string such as "entree" or "side"
+     */
     private String determineCategory(String name, String ingredients) {
         String nameLower = name.toLowerCase();
         String ingredientsLower = ingredients.toLowerCase();
@@ -153,6 +383,10 @@ public class CashierMenuController {
         return "side";
     }
     
+    /**
+     * Displays text input dialog to add a new seasonal menu item along with (name, price, ingredients) needed for the item.
+     * When its submitted, it validates the inputs and saves the new item to the database if valid for both menuce and inventoryce.
+     */
     @FXML
     private void addNewSeasonalItem() {
         Dialog<SeasonalItemData> dialog = new Dialog<>();
@@ -204,6 +438,11 @@ public class CashierMenuController {
         });
     }
     
+    /**
+     * Validates the seasonal item data from {@code addNewSeasonalItem} to make sure name is present and price is a valid number.
+     * @param data The seasonal item data
+     * @return true if valid, false otherwise (Shows a error alert if false)
+     */
     private boolean validateSeasonalItemData(SeasonalItemData data) {
         if (data.name == null || data.name.trim().isEmpty()) {
             showError("Invalid Input", "Item name cannot be empty");
@@ -222,6 +461,10 @@ public class CashierMenuController {
         return true;
     }
     
+    /**
+     * Persists the new seasonal item data to both menuce and inventoryce tables in the database.
+     * @param data The validated seasonal item data
+     */
     private void saveSeasonalItemToDatabase(SeasonalItemData data) {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -269,125 +512,10 @@ public class CashierMenuController {
         }
     }
     
-    @FXML
-    private void handleDeleteItem() {
-        String selectedReceiptItem = receiptListView.getSelectionModel().getSelectedItem();
-
-        // Basic guards
-        if (selectedReceiptItem == null || currentOrder == null || currentOrder.isEmpty()) {
-            showError("No Selection", "Please select an item from the receipt list to delete.");
-            return;
-        }
-
-        // Quick reject for lines that are clearly not item lines
-        if (!selectedReceiptItem.startsWith("  ") || selectedReceiptItem.trim().isEmpty()) {
-            showError("Invalid Selection", "Please select a specific menu item (not a header or subtotal) to delete.");
-            return;
-        }
-
-        // Find the last '$' to locate the price part (must exist for an item line)
-        int dollarIdx = selectedReceiptItem.lastIndexOf('$');
-        if (dollarIdx == -1) {
-            showError("Invalid Selection", "Please select a specific menu item (not a header or subtotal) to delete.");
-            return;
-        }
-
-        // Extract item name portion robustly:
-        // substring from char index 2 (we expect two leading spaces) up to the dollar sign,
-        // then strip trailing dots/spaces.
-        String rawNamePart;
-        try {
-            rawNamePart = selectedReceiptItem.substring(2, dollarIdx);
-        } catch (IndexOutOfBoundsException ex) {
-            showError("Format Error", "Could not parse item name from selection.");
-            return;
-        }
-
-        // Remove trailing dots and whitespace used as filler, then trim
-        String itemName = rawNamePart.replaceAll("[\\.\\s]+$", "").trim();
-        if (itemName.isEmpty()) {
-            showError("Format Error", "Could not parse item name from selection.");
-            return;
-        }
-
-        // Find which person this belongs to by scanning upward for a header like:
-        // "------ Person X ------" (allow flexible number of dashes and spacing)
-        String person = null;
-        ObservableList<String> allItems = receiptListView.getItems();
-        int selectedIndex = receiptListView.getSelectionModel().getSelectedIndex();
-        if (selectedIndex < 0) {
-            showError("Selection Error", "Please select an item from the receipt.");
-            return;
-        }
-
-        java.util.regex.Pattern headerPattern = java.util.regex.Pattern.compile("^\\s*-{2,}\\s*(.+?)\\s*-{2,}\\s*$");
-        for (int i = selectedIndex - 1; i >= 0; i--) {
-            String candidate = allItems.get(i);
-            java.util.regex.Matcher m = headerPattern.matcher(candidate);
-            if (m.matches()) {
-                person = m.group(1).trim();
-                break;
-            }
-        }
-
-        if (person == null) {
-            showError("Error", "Could not determine which person this item belongs to.");
-            return;
-        }
-
-        // Confirm deletion with the user
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirm Deletion");
-        alert.setHeaderText("Delete Item");
-        alert.setContentText("Are you sure you want to delete '" + itemName + "' from " + person + "'s order?");
-        Optional<ButtonType> result = alert.showAndWait();
-
-        if (!(result.isPresent() && result.get() == ButtonType.OK)) {
-            return;
-        }
-
-        // Try direct removal first (assumes Order.removeItemFromPerson requires exact name)
-        boolean removed = currentOrder.removeItemFromPerson(person, itemName);
-
-        // Fallbacks: try case-insensitive match or substring match against that person's items
-        if (!removed) {
-            List<MenuItem> personItems = currentOrder.getPersonOrders().get(person);
-            if (personItems != null) {
-                // 1) try exact case-insensitive match
-                for (MenuItem mi : new java.util.ArrayList<>(personItems)) {
-                    if (mi.getName().equalsIgnoreCase(itemName)) {
-                        removed = currentOrder.removeItemFromPerson(person, mi.getName());
-                        if (removed) break;
-                    }
-                }
-            }
-        }
-
-        if (!removed) {
-            // 2) try substring match (useful for small differences in punctuation/spacing)
-            List<MenuItem> personItems2 = currentOrder.getPersonOrders().get(person);
-            if (personItems2 != null) {
-                for (MenuItem mi : new java.util.ArrayList<>(personItems2)) {
-                    if (mi.getName().toLowerCase().contains(itemName.toLowerCase()) ||
-                        itemName.toLowerCase().contains(mi.getName().toLowerCase())) {
-                        removed = currentOrder.removeItemFromPerson(person, mi.getName());
-                        if (removed) break;
-                    }
-                }
-            }
-        }
-
-        if (removed) {
-            notesList.add("- Deleted " + itemName + " for " + person);
-            updateReceipt();
-            receiptListView.getSelectionModel().clearSelection();
-        } else {
-            showError("Deletion Failed", "Item not found in " + person + "'s order. Please verify and try again.");
-        }
-    }
-
-
-
+    /**
+     * Adds a new person to the order.
+     * It increments the person counter, updates the person selector, and refreshes the receipt display.
+     */
     @FXML
     private void addNewPerson() {
         personCounter++;
@@ -401,6 +529,11 @@ public class CashierMenuController {
         updateReceipt();
     }
 
+    /**
+     * Adds an item to the current person's order after checking inventory availability.
+     * It uses a key search to find the correct item from the {@code menuItemsMap} and updates the receipt display.
+     * @param itemName
+     */
     private void addItemByName(String itemName) {
         if (itemName == null) return;
         String key = itemName.trim().toLowerCase();
@@ -414,14 +547,30 @@ public class CashierMenuController {
 
         if (foundKey != null && menuItemsMap.containsKey(foundKey)) {
             MenuItem item = menuItemsMap.get(foundKey);
+             List<String> missingIngredients = checkInventoryAvailability(item);
+        if (!missingIngredients.isEmpty()) {
+            StringBuilder msg = new StringBuilder("Cannot add " + item.getName() + "\n\nInsufficient inventory:\n");
+            for (String ing : missingIngredients) {
+                msg.append("• ").append(ing).append("\n");
+            }
+            showError("Inventory Error", msg.toString());
+            notesList.add("blocked: " + item.getName() + " (no stock)");
+            return;
+        }
             currentOrder.addItemToPerson(currentPerson, item);
             notesList.add("+ Added " + item.getName());
             updateReceipt();
         } else {
-            showError("Item Not Found", "Could not find " + itemName);
+            showError("item Not Found", "could not find " + itemName);
         }
     }
 
+    /**
+     * Searches the {@code menuItemsMap} for a menu item key based on the provided name,
+     * accomodating for minor variations such as word order or partial matches.
+     * @param itemName The name of the item provided by user or button
+     * @return The matched menu item key, or null if no match is found.
+     */
     private String findMenuKeyFor(String itemName) {
         if (itemName == null) return null;
         String key = itemName.trim().toLowerCase().replaceAll("[^a-z0-9\\s]", "");
@@ -450,13 +599,17 @@ public class CashierMenuController {
         return null;
     }
     
+    /**
+     * Clears and repopulates {@code recieptListView} based on the current order.
+     * It constructs the reciept by iterating through each person's items, calculating subtotals, taxes, and the total amount.
+     */
     private void updateReceipt() {
         receiptItems.clear();
         
         Map<String, List<MenuItem>> personOrders = currentOrder.getPersonOrders();
         
         if (personOrders.isEmpty()) {
-            receiptItems.add("No items added yet");
+            receiptItems.add("no items added yet");
             return;
         }
         
@@ -481,6 +634,11 @@ public class CashierMenuController {
         receiptItems.add("TOTAL $" + String.format("%.2f", currentOrder.getTotalAmount()));
     }
     
+    /**
+     * Processes the current order for checkout.
+     * It validates the order, saves it to the database, updates inventory, checks for low inventory items, and displays the receipt.
+     * Additionally, it resets the order for the next transaction. The database operations are performed within a transaction to ensure data integrity.
+     */
     @FXML
     private void handleCheckout() {
         if (currentOrder.isEmpty()) {
@@ -489,7 +647,8 @@ public class CashierMenuController {
         }
         
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
             conn.setAutoCommit(false);
             
             LocalDate currentDate = LocalDate.now();
@@ -512,7 +671,6 @@ public class CashierMenuController {
             String orderQuery = "INSERT INTO orderhistoryce (id, date, time, item, qty, price) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement orderStmt = conn.prepareStatement(orderQuery);
             
-            int batchCount = 0;
             for (MenuItem item : currentOrder.getAllItems()) {
                 orderStmt.setInt(1, nextId++);
                 orderStmt.setDate(2, Date.valueOf(currentDate));
@@ -521,7 +679,6 @@ public class CashierMenuController {
                 orderStmt.setInt(5, 1); 
                 orderStmt.setDouble(6, item.getPrice());
                 orderStmt.addBatch();
-                batchCount++;
             }
             
             orderStmt.executeBatch();
@@ -574,16 +731,23 @@ public class CashierMenuController {
             notesList.add("Ready for new order");
             updateReceipt();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             try {
-                DatabaseConnection.getConnection().rollback();
-            } catch (SQLException ex) {
+                Class.forName("org.postgresql.Driver");
+                Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+                conn.rollback();
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            showError("Checkout Error", "Failed to process: " + e.getMessage());
+            showError("checkout Error", "failed to process: " + e.getMessage());
         }
     }
     
+    /**
+     * Updates the inventory by decrementing the quantities based on the items in the order.
+     * @param conn The active database connection
+     * @param order The completed  {@code Order} objects
+     */
     private void updateInventoryFromOrder(Connection conn, Order order) {
         try {
             List<MenuItem> allItems = order.getAllItems();
@@ -620,6 +784,11 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Checks the inventory for items that are at or below their minimum threshold.
+     * @param conn The active database connection
+     * @return A list of low inventory item names with their quantities.
+     */
     private List<String> checkLowInventory(Connection conn) {
         List<String> lowItems = new java.util.ArrayList<>();
         try {
@@ -642,6 +811,10 @@ public class CashierMenuController {
         return lowItems;
     }
     
+    /**
+     * Displays the inventory management dialog.
+     * Loads inventory data from the databas, displays it in a table, and provides an option to restock items.
+     */
     @FXML
     private void viewInventoryManagement() {
         Dialog<Void> dialog = new Dialog<>();
@@ -685,7 +858,7 @@ public class CashierMenuController {
             });
             statusCol.setPrefWidth(100);
             
-            table.getColumns().addAll(nameCol, qtyCol, priceCol, minCol, statusCol);
+            table.getColumns().addAll(java.util.Arrays.asList(nameCol, qtyCol, priceCol, minCol, statusCol));
             
             while (rs.next()) {
                 items.add(new InventoryItem(rs.getString("name"), rs.getInt("quantity"), 
@@ -704,7 +877,7 @@ public class CashierMenuController {
             buttonBox.setPadding(new Insets(10));
             Button restockBtn = new Button("Restock Item");
             restockBtn.setStyle("-fx-font-size: 12; -fx-padding: 8;");
-            restockBtn.setOnAction(e -> showRestockDialog(items));
+            restockBtn.setOnAction(_ -> showRestockDialog(items));
             buttonBox.getChildren().add(restockBtn);
             content.getChildren().add(buttonBox);
             
@@ -718,6 +891,10 @@ public class CashierMenuController {
         dialog.showAndWait();
     }
     
+    /**
+     * Displays a dialog to restock an inventory item.
+     * @param items The list of inventory items to choose from.
+     */
     private void showRestockDialog(ObservableList<InventoryItem> items) {
         Dialog<RestockData> dialog = new Dialog<>();
         dialog.setTitle("Restock Inventory Item");
@@ -768,6 +945,11 @@ public class CashierMenuController {
         result.ifPresent(data -> updateInventoryQuantity(data.itemName, data.quantity));
     }
     
+    /**
+     * Updates the inventory quantity for a specific item in the database.
+     * @param itemName Name of the item to restock
+     * @param quantityToAdd The amount to add to the current quantity
+     */
     private void updateInventoryQuantity(String itemName, int quantityToAdd) {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -787,6 +969,11 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Displays an error alert with the given title and message.
+     * @param title Title of alert window
+     * @param message The content message
+     */
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -795,6 +982,11 @@ public class CashierMenuController {
         alert.showAndWait();
     }
     
+    /**
+     * Displays an information alert with the given title and message.
+     * @param title Title of alert window
+     * @param message The content message
+     */
     private void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
@@ -802,7 +994,11 @@ public class CashierMenuController {
         alert.setContentText(message);
         alert.showAndWait();
     }
-    
+    // Helper data classes
+
+    /**
+     * Data class to hold seasonal item information.
+     */
     private static class SeasonalItemData {
         String name;
         String price;
@@ -817,6 +1013,9 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Data class to represent an inventory item.
+     */
     private static class InventoryItem {
         String name;
         int quantity;
@@ -831,6 +1030,10 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Data class to hold restock information.
+     * Specifically its input fields from the restock dialog.
+     */
     private static class RestockData {
         String itemName;
         int quantity;
