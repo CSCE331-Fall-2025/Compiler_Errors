@@ -30,6 +30,9 @@ public class CashierMenuController {
     @FXML
     private VBox menuContainer;
     
+    @FXML
+    private Button removeItemBtn;
+    
     private Order currentOrder;
     private ObservableList<String> receiptItems;
     private ObservableList<String> notesList;
@@ -37,6 +40,7 @@ public class CashierMenuController {
     private Map<String, MenuItem> menuItemsMap;
     private String currentPerson;
     private int personCounter = 1;
+    private int selectedReceiptIndex = -1;
     
     @FXML
     public void initialize() {
@@ -59,53 +63,158 @@ public class CashierMenuController {
             });
         }
         
+        setupReceiptListView();
+        
+        if (removeItemBtn != null) {
+            removeItemBtn.setDisable(true);
+        }
+        
         loadMenuItemsFromDatabase();
         generateMenuButtons();
         updateReceipt();
     }
     
-    private List<String> checkInventoryAvailability(MenuItem item) {
-    List<String> missingIngredients = new java.util.ArrayList<>();
-    
-    try {
-        Connection conn = DatabaseConnection.getConnection();
-        String ingredients = item.getIngredients();
-        
-        if (ingredients == null || ingredients.isEmpty()) {
-            return missingIngredients;
-        }
-        
-        String[] ingredientList = ingredients.split(",");
-        
-        for (String ingredient : ingredientList) {
-            String ingredientName = ingredient.trim();
-            
-            String query = "SELECT name, quantity FROM inventoryce WHERE LOWER(name) = LOWER(?)";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, ingredientName);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                int quantity = rs.getInt("quantity");
-                String actualName = rs.getString("name");
-                
-                if (quantity <= 0) {
-                    missingIngredients.add(actualName + " (Qty: " + quantity + ")");
-                }
-            } else {
-                missingIngredients.add(ingredientName + " (Not in inventory)");
-            }
-            
-            rs.close();
-            stmt.close();
-        }
-        
-    } catch (SQLException e) {
-        System.out.println("Error checking inventory: " + e.getMessage());
+    private void setupReceiptListView() {
+        receiptListView.setOnMouseClicked(_ -> {
+            selectedReceiptIndex = receiptListView.getSelectionModel().getSelectedIndex();
+            updateRemoveButtonState();
+        });
     }
     
-    return missingIngredients;
-}
+    private void updateRemoveButtonState() {
+        if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
+            if (removeItemBtn != null) removeItemBtn.setDisable(true);
+            return;
+        }
+        
+        String selected = receiptItems.get(selectedReceiptIndex);
+        
+        if (selected.startsWith("------ ") || selected.contains("Subtotal:") || 
+            selected.contains("Tax") || selected.startsWith("_") || selected.isEmpty()) {
+            if (removeItemBtn != null) removeItemBtn.setDisable(true);
+        } else {
+            if (removeItemBtn != null) removeItemBtn.setDisable(false);
+        }
+    }
+    
+    @FXML
+    private void removeSelectedItem() {
+        if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
+            showError("Selection Error", "Please select an item to remove");
+            return;
+        }
+        
+        String selectedLine = receiptItems.get(selectedReceiptIndex);
+        
+        if (selectedLine.startsWith("------ ") || selectedLine.contains("Subtotal:") || 
+            selectedLine.contains("Tax") || selectedLine.startsWith("_") || selectedLine.isEmpty()) {
+            showError("Invalid Selection", "Please select a food item to remove");
+            return;
+        }
+        
+        String itemName = selectedLine.trim().split("\\s+\\.+\\$")[0].trim();
+        
+        String personForItem = findPersonForItem(selectedReceiptIndex);
+        
+        if (personForItem == null) {
+            showError("Error", "Could not determine which person this item belongs to");
+            return;
+        }
+        
+        int headerIndex = -1;
+        for (int i = selectedReceiptIndex; i >= 0; i--) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("------ ") && line.endsWith(" ------")) {
+                headerIndex = i;
+                break;
+            }
+        }
+        if (headerIndex == -1) {
+            showError("Error", "Could not find person header for the selected item");
+            return;
+        }
+        
+        int itemIndexWithinPerson = -1;
+        int count = 0;
+        for (int i = headerIndex + 1; i <= selectedReceiptIndex && i < receiptItems.size(); i++) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("  ") && !line.contains("Subtotal:") && !line.contains("Tax")
+                && !line.startsWith("------") && !line.trim().isEmpty()) {
+                if (i == selectedReceiptIndex) {
+                    itemIndexWithinPerson = count;
+                    break;
+                }
+                count++;
+            } else if (line.contains("Subtotal:")) {
+                break;
+            }
+        }
+        
+        if (itemIndexWithinPerson < 0) {
+            showError("Error", "Could not determine item index to remove");
+            return;
+        }
+        
+        currentOrder.removeItemFromPerson(personForItem, itemIndexWithinPerson);
+        notesList.add("- Removed: " + itemName + " from " + personForItem);
+        selectedReceiptIndex = -1;
+        updateReceipt();
+        updateRemoveButtonState();
+    }
+    
+    private String findPersonForItem(int receiptIndex) {
+        for (int i = receiptIndex; i >= 0; i--) {
+            String line = receiptItems.get(i);
+            if (line.startsWith("------ ") && line.endsWith(" ------")) {
+                return line.substring(7, line.length() - 7); 
+            }
+        }
+        return null;
+    }
+    
+    private List<String> checkInventoryAvailability(MenuItem item) {
+        List<String> missingIngredients = new java.util.ArrayList<>();
+        
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            String ingredients = item.getIngredients();
+            
+            if (ingredients == null || ingredients.isEmpty()) {
+                return missingIngredients;
+            }
+            
+            String[] ingredientList = ingredients.split(",");
+            
+            for (String ingredient : ingredientList) {
+                String ingredientName = ingredient.trim();
+                
+                String query = "SELECT name, quantity FROM inventoryce WHERE LOWER(name) = LOWER(?)";
+                PreparedStatement stmt = conn.prepareStatement(query);
+                stmt.setString(1, ingredientName);
+                ResultSet rs = stmt.executeQuery();
+                
+                if (rs.next()) {
+                    int quantity = rs.getInt("quantity");
+                    String actualName = rs.getString("name");
+                    
+                    if (quantity <= 0) {
+                        missingIngredients.add(actualName + " (Qty: " + quantity + ")");
+                    }
+                } else {
+                    missingIngredients.add(ingredientName + " (Not in inventory)");
+                }
+                
+                rs.close();
+                stmt.close();
+            }
+            
+        } catch (SQLException e) {
+            System.out.println("Error checking inventory: " + e.getMessage());
+        }
+        
+        return missingIngredients;
+    }
+    
     private void loadMenuItemsFromDatabase() {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -333,16 +442,16 @@ public class CashierMenuController {
 
         if (foundKey != null && menuItemsMap.containsKey(foundKey)) {
             MenuItem item = menuItemsMap.get(foundKey);
-             List<String> missingIngredients = checkInventoryAvailability(item);
-        if (!missingIngredients.isEmpty()) {
-            StringBuilder msg = new StringBuilder("Cannot add " + item.getName() + "\n\nInsufficient inventory:\n");
-            for (String ing : missingIngredients) {
-                msg.append("• ").append(ing).append("\n");
+            List<String> missingIngredients = checkInventoryAvailability(item);
+            if (!missingIngredients.isEmpty()) {
+                StringBuilder msg = new StringBuilder("Cannot add " + item.getName() + "\n\nInsufficient inventory:\n");
+                for (String ing : missingIngredients) {
+                    msg.append("• ").append(ing).append("\n");
+                }
+                showError("Inventory Error", msg.toString());
+                notesList.add("blocked: " + item.getName() + " (no stock)");
+                return;
             }
-            showError("Inventory Error", msg.toString());
-            notesList.add("blocked: " + item.getName() + " (no stock)");
-            return;
-        }
             currentOrder.addItemToPerson(currentPerson, item);
             notesList.add("+ Added " + item.getName());
             updateReceipt();
@@ -754,17 +863,16 @@ public class CashierMenuController {
             this.name = name;
             this.quantity = quantity;
             this.unitPrice = unitPrice;
-            this.minimum = minimum;
-        }
+            this.minimum = minimum;}
+        
     }
     
-    private static class RestockData {
+    private static class RestockData{
         String itemName;
         int quantity;
         
-        RestockData(String itemName, int quantity) {
+        RestockData(String itemName, int quantity){
             this.itemName = itemName;
             this.quantity = quantity;
-        }
-    }
+        }}
 }
