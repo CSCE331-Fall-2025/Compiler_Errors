@@ -239,7 +239,7 @@ public class CashierMenuController {
 
     /**
      * Check the inventoryce for all ingredients required for the given menu item.
-     * @param item
+     * @param item The {@code MenuItem} to check ingredients for.
      * @return A list of missing ingredients with their quantities if insufficient stock is found.
      */
     private List<String> checkInventoryAvailability(MenuItem item) {
@@ -318,7 +318,8 @@ public class CashierMenuController {
     }
     
     /**
-     * Generates dynamic menu buttons based on the items loaded in {@code menuItemsMap}.
+     * Generates dynamic menu buttons based on the items loaded in {@code menuItemsMap}
+     * to the {@code menuContainer} using a {@code GridPane} within a {@code ScrollPane}.
      */
     private void generateMenuButtons() {
         if (menuContainer == null) return;
@@ -441,7 +442,7 @@ public class CashierMenuController {
     /**
      * Validates the seasonal item data from {@code addNewSeasonalItem} to make sure name is present and price is a valid number.
      * @param data The seasonal item data
-     * @return true if valid, false otherwise (Shows a error alert if false)
+     * @return {@code true} if valid, {@code false} otherwise (Shows a error alert if false)
      */
     private boolean validateSeasonalItemData(SeasonalItemData data) {
         if (data.name == null || data.name.trim().isEmpty()) {
@@ -569,7 +570,7 @@ public class CashierMenuController {
      * Searches the {@code menuItemsMap} for a menu item key based on the provided name,
      * accomodating for minor variations such as word order or partial matches.
      * @param itemName The name of the item provided by user or button
-     * @return The matched menu item key, or null if no match is found.
+     * @return The matched menu item key, or {@code null} if no match is found.
      */
     private String findMenuKeyFor(String itemName) {
         if (itemName == null) return null;
