@@ -45,6 +45,9 @@ public class CashierMenuController {
     private Map<String, MenuItem> menuItemsMap;
     private String currentPerson;
     private int personCounter = 1;
+
+    private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database";
+    private dbSetup my;
     
     @FXML
     public void initialize() {
@@ -113,7 +116,7 @@ public class CashierMenuController {
             stmt.close();
             notesList.add("- Menu loaded: " + menuItemsMap.size() + " items");
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             showError("Database Error", "Failed to load menu items: " + e.getMessage());
             e.printStackTrace();
         }
@@ -391,8 +394,10 @@ public class CashierMenuController {
             return;
         }
         
+        Connection conn;
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            Class.forName("org.postgresql.Driver");
+            conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
             conn.setAutoCommit(false);
             
             LocalDate currentDate = LocalDate.now();
@@ -477,9 +482,11 @@ public class CashierMenuController {
             notesList.add("Ready for new order");
             updateReceipt();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            /*
             try {
-                DatabaseConnection.getConnection().rollback();
+                Connection toast;
+                toast.rollback();
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
