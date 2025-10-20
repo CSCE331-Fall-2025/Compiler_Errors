@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.HashMap;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -13,6 +14,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ListView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -55,12 +57,24 @@ public class DatabaseController {
     private Button addEmpButton, updateEmpButton, fireEmpButton;
 
 
-     @FXML
+    @FXML
     private ChoiceBox reportBox;
     @FXML 
     private Button reportButton;
     @FXML
     private TextArea reportView;
+    @FXML
+    private ListView restockListView;
+    @FXML 
+    private Button refreshBtn;
+    @FXML
+    private ListView usageListView;
+    @FXML 
+    private DatePicker usageStartDate;
+    @FXML 
+    private DatePicker usageEndDate;
+    @FXML
+    private Button usageReportBtn;
     // @FXML
     // private Button closeButton;
     
@@ -80,6 +94,9 @@ public class DatabaseController {
     // This method runs automatically when the FXML loads
     @FXML
     public void initialize() {
+        restockListView.setStyle("-fx-font-family: 'Monospaced';");
+        usageListView.setStyle("-fx-font-family: 'Monospaced';");
+        refreshBtn();
         // Set up what happens when button is clicked
         ObservableList<String> reports = FXCollections.observableArrayList(
              "Top 5 Menu items", "Top 10 Sales Days", "All time profit"
@@ -88,6 +105,8 @@ public class DatabaseController {
 
         ingredients = getIngredients();
 
+        usageReportBtn.setOnAction(event -> usageReportButton());
+        refreshBtn.setOnAction(event -> refreshBtn());
         reportButton.setOnAction(event -> reportBtn());
         queryButton.setOnAction(event -> runQuery());
         filterButton.setOnAction(event -> filterBtn());
@@ -99,6 +118,93 @@ public class DatabaseController {
         updateEmpButton.setOnAction(event -> updateEmpBtn());
         fireEmpButton.setOnAction(event -> fireBtn());
         // closeButton.setOnAction(event -> closeWindow());
+    }
+
+    public void usageReportButton() {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+            Statement stmt = conn.createStatement();
+
+            HashMap<String, Integer> quantityMap = new HashMap<>();
+            ResultSet menuRS = stmt.executeQuery("SELECT name, ingredients FROM menuce;");
+            while (menuRS.next()) {
+                String name = menuRS.getString("name");
+                String ing = menuRS.getString("ingredients");
+                int ingredientCount = 0;
+                if (ing != null && !ing.isEmpty()) {
+                    ingredientCount = ing.split(",\\s*").length;
+                }
+                quantityMap.put(name, ingredientCount);
+            }
+
+            String startDate = usageStartDate.getValue().toString();
+            String endDate = usageEndDate.getValue().toString();
+
+            String query = "SELECT date, item, qty FROM orderhistoryce " +
+                        "WHERE date BETWEEN '" + startDate + "' AND '" + endDate + "';";
+            ResultSet orderRS = stmt.executeQuery(query);
+
+            HashMap<String, Integer> dateTotals = new HashMap<>();
+            while (orderRS.next()) {
+                String date = orderRS.getString("date");
+                String name = orderRS.getString("item");
+                int qtyOrdered = orderRS.getInt("qty");
+
+                int perItemUsage = quantityMap.getOrDefault(name, 0); 
+                int totalUsage = perItemUsage * qtyOrdered;
+
+                dateTotals.put(date, dateTotals.getOrDefault(date, 0) + totalUsage);
+            }
+
+            usageListView.getItems().clear();
+            for (String date : dateTotals.keySet()) {
+                String display = String.format("%-15s %d items", date, dateTotals.get(date));
+                usageListView.getItems().add(display);
+            }
+
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            dbView.setText("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void refreshBtn() {
+        restockListView.getItems().clear();
+        try {
+            // Get database creditials
+ 
+            // Build the connection
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+
+            // Create statement
+            Statement stmt = conn.createStatement();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM inventoryce WHERE quantity < minimum;");
+            
+            
+            while (rs.next()) {
+                String name = rs.getString("name");
+                int quantity = rs.getInt("quantity");
+                
+                // Format with right padding for the name (e.g., 20 characters)
+                String display = String.format("%-20s %d", name, quantity);
+                
+                restockListView.getItems().add(display);
+            }
+
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            reportView.setText("Error connecting to database:\n" + e.getMessage());
+             e.printStackTrace();
+        }
+
     }
 
     public void reportBtn() {
@@ -351,54 +457,52 @@ public class DatabaseController {
     
     private void filterBtn() {
         String db = dbView.getText();
-        if(!"".equals(lastStatement) && (db.substring(0, db.indexOf('\n'))).contains("date")) {
-            LocalDate start = startDate.getValue();
-            LocalDate end = endDate.getValue();            
-            if(start != null && end != null) {
+        LocalDate start = startDate.getValue();
+        LocalDate end = endDate.getValue();            
+        if(start != null && end != null) {
 
-                String startStr = start.toString();
-                String endStr = end.toString();
-                
-                String sqlStatement = "SELECT * FROM (" + lastStatement.substring(0, lastStatement.length() - 1) + ") AS sub " +
-                    "WHERE sub.\"date\" BETWEEN '" + startStr + "' AND '" + endStr + "';";
+            String startStr = start.toString();
+            String endStr = end.toString();
+            
+            String sqlStatement = "SELECT item, SUM(qty) AS total_sales FROM orderhistoryce WHERE date BETWEEN '" + startStr + "' AND '" + endStr + "' GROUP BY item;";
+            System.out.println(sqlStatement);
 
-                try {
-                    Class.forName("org.postgresql.Driver");
-                    conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-                    stmt = conn.createStatement();
+            try {
+                Class.forName("org.postgresql.Driver");
+                conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
+                stmt = conn.createStatement();
 
-                    ResultSet rs = stmt.executeQuery(sqlStatement);
+                ResultSet rs = stmt.executeQuery(sqlStatement);
 
-                    dbView.clear();
+                dbView.clear();
 
-                    ResultSetMetaData metaData = rs.getMetaData();
-                    int columnCount = metaData.getColumnCount();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
 
+                for (int i = 1; i <= columnCount; i++) {
+                    dbView.appendText(metaData.getColumnName(i));
+                    if (i < columnCount) dbView.appendText("\t");
+                }
+                dbView.appendText("\n");
+
+                while (rs.next()) {
                     for (int i = 1; i <= columnCount; i++) {
-                        dbView.appendText(metaData.getColumnName(i));
+                        String value = rs.getString(i);
+                        dbView.appendText(value != null ? value : "NULL");
                         if (i < columnCount) dbView.appendText("\t");
                     }
                     dbView.appendText("\n");
-
-                    while (rs.next()) {
-                        for (int i = 1; i <= columnCount; i++) {
-                            String value = rs.getString(i);
-                            dbView.appendText(value != null ? value : "NULL");
-                            if (i < columnCount) dbView.appendText("\t");
-                        }
-                        dbView.appendText("\n");
-                    }
-
-                    // Close connection
-                    rs.close();
-
-                } catch (Exception e) {
-                    dbView.setText("Error connecting to database:\n" + e.getMessage());
-                    e.printStackTrace();
                 }
-                
-            }    
-        }
+
+                // Close connection
+                rs.close();
+
+            } catch (Exception e) {
+                dbView.setText("Error connecting to database:\n" + e.getMessage());
+                e.printStackTrace();
+            }
+            
+        }    
     }
 
     // Your method to run the database query
