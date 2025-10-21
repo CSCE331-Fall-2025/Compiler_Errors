@@ -16,7 +16,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Controller for the Cashier Menu UI.
+ *
+ * <p>Loads menu items from the database, renders them into a scrollable
+ * menu, manages the current order (per-person), performs inventory
+ * availability checks, and provides dialogs for inventory management
+ * and adding seasonal menu items.</p>
+ */
 public class CashierMenuController {
+    /**
+     * No-argument constructor required by JavaFX when instantiating the controller.
+     * Providing an explicit constructor so the generated Javadoc includes a
+     * documented constructor instead of a default undocumented one.
+     */
+    public CashierMenuController() {}
     
     @FXML
     private ListView<String> notesListView;
@@ -33,15 +47,31 @@ public class CashierMenuController {
     @FXML
     private Button removeItemBtn;
     
+    /** The current Order being constructed (supports multiple persons). */
     private Order currentOrder;
+    /** Backing list for the receipt display ListView. */
     private ObservableList<String> receiptItems;
+    /** Backing list for the notes display ListView. */
     private ObservableList<String> notesList;
+    /** Observable list containing the person labels ("Person 1", ...). */
     private ObservableList<String> personList;
+    /** Map of normalized menu key -> MenuItem for fast item lookup. */
     private Map<String, MenuItem> menuItemsMap;
+    /** The currently selected person for adding items. */
     private String currentPerson;
+    /** Counter used to assign new person labels. */
     private int personCounter = 1;
+    /** The currently selected index in the receiptItems list (-1 when none). */
     private int selectedReceiptIndex = -1;
     
+    /**
+     * JavaFX initialization callback.
+     *
+     * <p>Sets up the initial controller state: creates the order and
+     * observable lists, configures the person selector and receipt list
+     * handlers, loads menu items from the database, and builds the
+     * menu UI.</p>
+     */
     @FXML
     public void initialize() {
         currentOrder = new Order();
@@ -74,6 +104,13 @@ public class CashierMenuController {
         updateReceipt();
     }
     
+    /**
+     * Sets up the receipt list view click handler.
+     * 
+     * <p>Configures the mouse click event handler for the receipt list view
+     * to update the selected item index and enable/disable the remove button
+     * based on the selection.</p>
+     */
     private void setupReceiptListView() {
         receiptListView.setOnMouseClicked(_ -> {
             selectedReceiptIndex = receiptListView.getSelectionModel().getSelectedIndex();
@@ -81,6 +118,15 @@ public class CashierMenuController {
         });
     }
     
+    /**
+     * Updates the state of the remove item button.
+     * 
+     * <p>Enables or disables the remove button based on the current selection
+     * in the receipt list view. The button is disabled if:
+     * - No item is selected
+     * - The selected item is a header or separator
+     * - The selected item is a subtotal or tax line</p>
+     */
     private void updateRemoveButtonState() {
         if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
             if (removeItemBtn != null) removeItemBtn.setDisable(true);
@@ -97,6 +143,15 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Removes the currently selected item from the order.
+     * 
+     * <p>This method is called when the remove item button is clicked. It:
+     * 1. Validates the selection is a valid item
+     * 2. Determines which person's order contains the item
+     * 3. Finds the item's index within that person's order
+     * 4. Removes the item and updates the receipt display</p>
+     */
     @FXML
     private void removeSelectedItem() {
         if (selectedReceiptIndex < 0 || selectedReceiptIndex >= receiptItems.size()) {
@@ -162,6 +217,16 @@ public class CashierMenuController {
         updateRemoveButtonState();
     }
     
+    /**
+     * Finds the person who owns an item in the receipt.
+     * 
+     * <p>This method searches backwards from the given receipt index to find
+     * the person header that contains this item. Person headers are formatted
+     * as "------ Person Name ------".</p>
+     * 
+     * @param receiptIndex The index of the item in the receipt list
+     * @return The name of the person who owns the item, or null if not found
+     */
     private String findPersonForItem(int receiptIndex) {
         for (int i = receiptIndex; i >= 0; i--) {
             String line = receiptItems.get(i);
@@ -172,6 +237,16 @@ public class CashierMenuController {
         return null;
     }
     
+    /**
+     * Checks if all ingredients for a menu item are available in inventory.
+     * 
+     * <p>This method queries the inventory database to check if each ingredient
+     * required for the menu item has sufficient quantity (greater than 0).
+     * The inventory check is case-insensitive.</p>
+     * 
+     * @param item The menu item to check ingredients for
+     * @return A list of missing or insufficient ingredients, with their quantities
+     */
     private List<String> checkInventoryAvailability(MenuItem item) {
         List<String> missingIngredients = new java.util.ArrayList<>();
         
@@ -214,7 +289,19 @@ public class CashierMenuController {
         
         return missingIngredients;
     }
+
     
+    
+    /**
+     * Loads all menu items from the database.
+     * 
+     * <p>This method:
+     * 1. Queries the menu table for all items
+     * 2. Creates MenuItem objects for each row
+     * 3. Determines the category based on name/ingredients
+     * 4. Stores items in the menuItemsMap for quick lookup
+     * 5. Logs the loaded items to the notes list</p>
+     */
     private void loadMenuItemsFromDatabase() {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -244,6 +331,15 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Generates the menu buttons UI.
+     * 
+     * <p>Creates a scrollable grid of buttons for each menu item, where:
+     * - Each button shows the item name and price
+     * - Buttons are arranged in a grid with 2 columns
+     * - Clicking a button adds the item to the current order
+     * - The grid is placed in a scroll pane for overflow handling</p>
+     */
     private void generateMenuButtons() {
         if (menuContainer == null) return;
         
@@ -288,6 +384,18 @@ public class CashierMenuController {
         VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
     }
     
+    /**
+     * Determines the category of a menu item based on its name and ingredients.
+     * 
+     * <p>Categories are determined by these rules:
+     * - Items with "rice" or "noodle" in the name are sides
+     * - Items with "chicken" or "beef" in ingredients are entrees
+     * - Default category is "side"</p>
+     * 
+     * @param name The name of the menu item
+     * @param ingredients The comma-separated list of ingredients
+     * @return The determined category ("side" or "entree")
+     */
     private String determineCategory(String name, String ingredients) {
         String nameLower = name.toLowerCase();
         String ingredientsLower = ingredients.toLowerCase();
@@ -300,6 +408,16 @@ public class CashierMenuController {
         return "side";
     }
     
+    /**
+     * Shows a dialog to add a new seasonal menu item.
+     * 
+     * <p>This method:
+     * 1. Creates a dialog with fields for item details
+     * 2. Validates the input data
+     * 3. Saves the new item to the database
+     * 4. Updates the menu buttons to include the new item
+     * 5. Adds corresponding inventory entry</p>
+     */
     @FXML
     private void addNewSeasonalItem() {
         Dialog<SeasonalItemData> dialog = new Dialog<>();
@@ -351,6 +469,17 @@ public class CashierMenuController {
         });
     }
     
+    /**
+     * Validates the data for a new seasonal menu item.
+     * 
+     * <p>Checks that:
+     * - Item name is not empty
+     * - Price is a valid number
+     * - Ingredients list is not empty</p>
+     * 
+     * @param data The seasonal item data to validate
+     * @return true if the data is valid, false otherwise
+     */
     private boolean validateSeasonalItemData(SeasonalItemData data) {
         if (data.name == null || data.name.trim().isEmpty()) {
             showError("Invalid Input", "Item name cannot be empty");
@@ -369,6 +498,18 @@ public class CashierMenuController {
         return true;
     }
     
+    /**
+     * Saves a new seasonal menu item to the database.
+     * 
+     * <p>This method:
+     * 1. Checks for duplicate items
+     * 2. Inserts the new item into the menu table
+     * 3. Creates a corresponding inventory entry
+     * 4. Updates the local menu items map
+     * 5. Logs the addition to the notes list</p>
+     * 
+     * @param data The seasonal item data to save
+     */
     private void saveSeasonalItemToDatabase(SeasonalItemData data) {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -416,6 +557,16 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Adds a new person to the current order.
+     * 
+     * <p>This method:
+     * 1. Increments the person counter
+     * 2. Creates a new person entry ("Person X")
+     * 3. Updates the person selector combobox
+     * 4. Logs the addition to the notes list
+     * 5. Updates the receipt display</p>
+     */
     @FXML
     private void addNewPerson() {
         personCounter++;
@@ -429,6 +580,18 @@ public class CashierMenuController {
         updateReceipt();
     }
 
+    /**
+     * Adds a menu item to the current order by its name.
+     * 
+     * <p>This method:
+     * 1. Attempts to find the item in the menu items map
+     * 2. Uses fuzzy matching if exact match fails
+     * 3. Checks inventory availability
+     * 4. Adds the item to the current person's order
+     * 5. Updates the receipt display</p>
+     * 
+     * @param itemName The name of the item to add
+     */
     private void addItemByName(String itemName) {
         if (itemName == null) return;
         String key = itemName.trim().toLowerCase();
@@ -460,6 +623,18 @@ public class CashierMenuController {
         }
     }
 
+    /**
+     * Finds a menu item key using fuzzy matching.
+     * 
+     * <p>This method tries several matching strategies in order:
+     * 1. Exact match after normalization
+     * 2. Word order reversal (e.g., "chicken orange" -> "orange chicken")
+     * 3. All words contained check
+     * 4. Substring containment check</p>
+     * 
+     * @param itemName The name to search for
+     * @return The matching menu key, or null if no match found
+     */
     private String findMenuKeyFor(String itemName) {
         if (itemName == null) return null;
         String key = itemName.trim().toLowerCase().replaceAll("[^a-z0-9\\s]", "");
@@ -488,6 +663,16 @@ public class CashierMenuController {
         return null;
     }
     
+    /**
+     * Updates the receipt display with current order information.
+     * 
+     * <p>This method generates a formatted receipt showing:
+     * - Each person's order with item names and prices
+     * - Individual subtotals per person
+     * - Overall subtotal
+     * - Tax amount (8.25%)
+     * - Final total amount</p>
+     */
     private void updateReceipt() {
         receiptItems.clear();
         
@@ -519,6 +704,13 @@ public class CashierMenuController {
         receiptItems.add("TOTAL $" + String.format("%.2f", currentOrder.getTotalAmount()));
     }
     
+    /**
+     * Handles checkout: records the order into the database and updates inventory.
+     *
+     * <p>This method writes each ordered item to the order history table, updates
+     * inventory quantities, checks for low inventory, and resets the UI for a new
+     * order when complete. Errors attempt a rollback and display an error dialog.</p>
+     */
     @FXML
     private void handleCheckout() {
         if (currentOrder.isEmpty()) {
@@ -620,6 +812,12 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Decrements inventory quantities based on the items in an order.
+     *
+     * @param conn Live DB connection (should be part of the checkout transaction)
+     * @param order The processed order whose ingredients should be decremented
+     */
     private void updateInventoryFromOrder(Connection conn, Order order) {
         try {
             List<MenuItem> allItems = order.getAllItems();
@@ -823,6 +1021,12 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Shows an error alert to the user.
+     *
+     * @param title Dialog title
+     * @param message Human-readable error message
+     */
     private void showError(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -831,6 +1035,12 @@ public class CashierMenuController {
         alert.showAndWait();
     }
     
+    /**
+     * Shows an informational alert to the user.
+     *
+     * @param title Dialog title
+     * @param message Human-readable informational message
+     */
     private void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
@@ -839,6 +1049,9 @@ public class CashierMenuController {
         alert.showAndWait();
     }
     
+    /**
+     * Simple holder for data collected from the "Add Seasonal Item" dialog.
+     */
     private static class SeasonalItemData {
         String name;
         String price;
@@ -853,6 +1066,9 @@ public class CashierMenuController {
         }
     }
     
+    /**
+     * Represents a row in the inventory table used by the inventory management dialog.
+     */
     private static class InventoryItem {
         String name;
         int quantity;
@@ -867,6 +1083,9 @@ public class CashierMenuController {
         
     }
     
+    /**
+     * Holder for restock dialog results.
+     */
     private static class RestockData{
         String itemName;
         int quantity;
