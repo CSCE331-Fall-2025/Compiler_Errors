@@ -2,6 +2,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+
+/**
+ * Stores database verification and connection information
+ */
 public class DatabaseConnection {
     private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database";
     private static final String DB_USER = "compiler_errors";
@@ -9,6 +13,11 @@ public class DatabaseConnection {
     
     private static Connection connection = null;
     
+    /**
+     * Connects to the database
+     * @return Returns connection to database
+     * @throws SQLException Thrown when driver not found
+     */
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             try {
@@ -24,6 +33,10 @@ public class DatabaseConnection {
         return connection;
     }
     
+    /**
+     * Closes connection to database
+     * @exception SQLException Throws exception upon failing to close channel
+     */
     public static void closeConnection() {
         if (connection != null) {
             try {

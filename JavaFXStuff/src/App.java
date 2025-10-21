@@ -1,23 +1,27 @@
 import javafx.application.Application;
-import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * The main class
+ * App extends Application from JavaFX
+ * @version 1.0
+ */
 public class App extends Application {
-    @FXML
-    private Button loginButton;
-
-    @FXML
-    private TextField usernameField, passwordField;
-
+    /**
+     * Launches javafx thread
+     * @param args - unused
+     */
     public static void main(String[] args){
         launch(App.class); //Launches the program
     }
 
-    //Gets userType from launch() and loads appropriate GUI
+    /**
+     * Overrides start from JavaFX
+     * Loads login.fxml and displays it
+     * @param stage - passed implicitly via launch
+     */
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader fxmlLoader = new FXMLLoader();

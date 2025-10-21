@@ -12,17 +12,20 @@ import javafx.stage.Stage;
 
 
 
-
+/**
+ * Bridge between login.fxml and backend
+ */
 public class LoginController{
-
     DatabaseController dbContr = new DatabaseController();
 
     @FXML
     private Button loginButton;
-
     @FXML
     private TextField usernameField, passwordField;
-    
+
+    /**
+     * Initializes the login button and gets registered users
+     */
     @FXML
     private void initialize()
     {
@@ -30,6 +33,12 @@ public class LoginController{
         dbContr.getUsers();
     }
 
+    /**
+     * Verifies login. Returns when invalid login
+     * Loads appropriate fxml upon validation
+     * @param event - Used to link to stage. Passed in via initialize
+     * @exception IOException Upon failing to register data from the appropriate fields
+     */
     private void login(ActionEvent event)
     {
         String userType = dbContr.auth(usernameField.getText(),passwordField.getText());

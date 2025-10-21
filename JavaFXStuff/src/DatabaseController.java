@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.HashMap;
 import java.util.Arrays;
 
@@ -24,11 +23,14 @@ import javafx.scene.control.ListView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+<<<<<<< Updated upstream
 import javafx.scene.Node;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
+=======
+>>>>>>> Stashed changes
 
 
 public class DatabaseController {
@@ -607,7 +609,11 @@ public class DatabaseController {
         }    
     }
 
-    // Your method to run the database query
+    /**
+     * Manager querying textbox
+     * 
+     * @exception Exception Throws exception upon invalid SQL query or failed connection to database
+     */
     private void runQuery() {
         System.out.println("Querying");
         dbView.setText("Query will run here...");
@@ -654,7 +660,14 @@ public class DatabaseController {
         }
     }
 
+<<<<<<< Updated upstream
 
+=======
+    /**
+     * Retrieves current users from database
+     * @exception Exception Thrown upon failing to connect or upon failed SQL query
+     */
+>>>>>>> Stashed changes
     public void getUsers()
     {
         try {
@@ -683,11 +696,8 @@ public class DatabaseController {
         }
     }
 
-    /*
+    /**
      * Validates user login information and returns associated user type
-     * 
-     * Does not throw exceptions.
-     * 
      * @param username - username associated with login information
      * @param password - password associated with login information
      */
