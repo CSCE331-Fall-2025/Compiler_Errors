@@ -10,8 +10,15 @@ import javafx.stage.Stage;
  */
 public class App extends Application {
     /**
+     * No-argument constructor required by JavaFX when instantiating the controller.
+     * Providing an explicit constructor so the generated Javadoc includes a
+     * documented constructor instead of a default undocumented one.
+     */
+    public App() {}
+
+    /**
      * Launches javafx thread
-     * @param args - unused
+     * @param args unused
      */
     public static void main(String[] args){
         launch(App.class); //Launches the program
@@ -20,7 +27,8 @@ public class App extends Application {
     /**
      * Overrides start from JavaFX
      * Loads login.fxml and displays it
-     * @param stage - passed implicitly via launch
+     * @param stage passed implicitly via launch
+     * @exception Exception thrown when invalid fxml
      */
     @Override
     public void start(Stage stage) throws Exception {

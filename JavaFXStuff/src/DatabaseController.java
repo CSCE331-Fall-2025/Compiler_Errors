@@ -23,18 +23,21 @@ import javafx.scene.control.ListView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-<<<<<<< Updated upstream
-import javafx.scene.Node;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.stage.Stage;
-import javafx.scene.Scene;
-=======
->>>>>>> Stashed changes
 
-
+/**
+ * Controller for the manager application <p>
+ * 
+ * Also contains authentication protocols for program
+ */
 public class DatabaseController {
-    
+    /**
+     * No-argument constructor required by JavaFX when instantiating the controller.
+     * Providing an explicit constructor so the generated Javadoc includes a
+     * documented constructor instead of a default undocumented one.
+     */
+    public DatabaseController() {}
+
+
     //Main
     @FXML
     private TextField queryField;
@@ -109,7 +112,9 @@ public class DatabaseController {
     Connection conn;
     Statement stmt;
 
-    // This method runs automatically when the FXML loads
+    /**
+     * Runs initialization protocols for manager side of application
+     */
     @FXML
     public void initialize() {
         restockListView.setStyle("-fx-font-family: 'Monospaced';");
@@ -136,8 +141,13 @@ public class DatabaseController {
         addEmpButton.setOnAction(event -> addEmpBtn());
         updateEmpButton.setOnAction(event -> updateEmpBtn());
         fireEmpButton.setOnAction(event -> fireBtn());
-        // closeButton.setOnAction(event -> closeWindow());
     }
+
+    /**
+     * Swaps window to cashier side.
+     * 
+     * @param event Used to obtain parent window. Passed via button press
+     */
 
     public void swapToCashier(ActionEvent event)
     {
@@ -155,6 +165,9 @@ public class DatabaseController {
         }
     }
 
+    /**
+     * Generates usage report on button press
+     */
     public void usageReportButton() {
         try {
             Class.forName("org.postgresql.Driver");
@@ -207,6 +220,10 @@ public class DatabaseController {
         }
     }
 
+
+    /**
+     * Refreshes restock view on button press
+     */
     public void refreshBtn() {
         restockListView.getItems().clear();
         try {
@@ -242,6 +259,11 @@ public class DatabaseController {
 
     }
 
+    /**
+     * Generates X report from opening time to a given hour 
+     * 
+     * @param currentHour int
+     */
     public void getXReport(int currentHour)
     {
         String date = xzReportDate.getValue().toString();
@@ -249,7 +271,7 @@ public class DatabaseController {
         //Stores amount of an item sold
         HashMap<Integer, Integer> quantitySold = new HashMap<>();
         //Total value per hour
-        double totalVal = 0;
+        //double totalVal = 0;
         
         try
         {
@@ -261,7 +283,7 @@ public class DatabaseController {
             {
 
                 int curHour = rs.getInt("hour");
-                String name = rs.getString("item");
+                //String name = rs.getString("item");
                 int qty = rs.getInt("qty");
                 double price = rs.getDouble("price");
 
@@ -280,7 +302,7 @@ public class DatabaseController {
                 quantitySold.put(curHour,temp);
 
                 //Stores total value for the entire day
-                totalVal += (qty * price);
+                //totalVal += (qty * price);
             }
 
             reportView.clear();
@@ -298,6 +320,16 @@ public class DatabaseController {
         }
     }
 
+    /**
+     * Generates reports <p>
+     * 
+     * Supported Reports: <br>
+     * Top 5 Menu Items <br>
+     * Top 10 Sales Days <br>
+     * All Time Profit <br>
+     * X Report <br>
+     * Z Report <br>
+     */
     public void reportBtn() {
         String value = reportBox.getValue().toString();
 
@@ -374,6 +406,10 @@ public class DatabaseController {
 
     }
 
+    /**
+     * Retrieves ingredients so that menu items may be verified
+     * @return HashSet(String)
+     */
     public HashSet<String> getIngredients() {
         HashSet<String> ingredients1 = new HashSet<>();
 
@@ -405,6 +441,12 @@ public class DatabaseController {
         return ingredients1;
     }
 
+    /**
+     * Helper regex function used in validation functions
+     * 
+     * @param re the regex pattern
+     * @param str the string to be matched
+     */
     private boolean matches(String re, String str) {
         Pattern p = Pattern.compile(re);
         Matcher m = p.matcher(str);
@@ -412,6 +454,14 @@ public class DatabaseController {
         return m.find();
     }
 
+    /**
+     * Validates given phone number 
+     * Format: (123) 456-7890
+     * 
+     * @param phone the phone number to be verified
+     * 
+     * @return True if verified, False if invalid or non-existent
+     */
     private boolean validPhone(String phone) {
         System.out.println("Validating phone #: " + phone);
 
@@ -431,6 +481,31 @@ public class DatabaseController {
         return flag;
     }
 
+     /**
+     * Validates given email
+     * 
+     * @param email the email to be verified
+     */
+    private boolean validEmail(String email) {
+        System.out.println("Validating email: " + email);
+
+
+        boolean flag = matches("[A-z0-9]+@[a-z\\.]+\\.(com|edu|gov)", email);
+        
+        if(flag) {
+            System.out.println("Email validated.");
+        } else {
+            System.out.println("Email invalid.");
+        }
+
+        return flag;
+    }
+
+    /**
+     * Query function specifically for updating the database with a given query
+     * 
+     * @exception Exception Occurs when failed SQL query or database connection failed
+     */
     private void query(String query) {
         System.out.println("Attempting query: " + query);
         try {
@@ -446,6 +521,9 @@ public class DatabaseController {
 
     }
 
+    /**
+     * Adds a menu item to the database on button press
+     */
     private void addMenuBtn() {
         String name = addMenuNameField.getText();
         String price = addMenuPriceField.getText();
@@ -469,6 +547,9 @@ public class DatabaseController {
 
     }
 
+    /**
+     * Updates menu item with values on button press
+     */
     private void updateMenuBtn() {
         String name = updateMenuNameField.getText();
         String newname = updateMenuNewNameField.getText();
@@ -485,6 +566,9 @@ public class DatabaseController {
 
     }
     
+    /**
+     * Adds inventory item on button press
+     */
     private void addInvBtn() {
         String name = addInvNameField.getText();
         String qty = addInvQtyField.getText();
@@ -497,6 +581,9 @@ public class DatabaseController {
         }
     }
 
+    /**
+     * Updates inventory item with values from relevant text fields on button press
+     */
     private void updateInvBtn() {
         String name = updateInvNameField.getText();
         String qty = updateInvQtyField.getText();
@@ -514,6 +601,9 @@ public class DatabaseController {
 
     }
 
+    /**
+     * Adds employee to database on button press
+     */
     private void addEmpBtn() {
         String name = addEmpNameField.getText();
         String type = addEmpTypeField.getText();
@@ -522,13 +612,16 @@ public class DatabaseController {
 
         if(name.isEmpty()) { return; }
 
-        if(!type.isEmpty() && !email.isEmpty() && !phone.isEmpty() && validPhone(phone)) {
+        if(!type.isEmpty() && !email.isEmpty() && !phone.isEmpty() && validPhone(phone) && validEmail(email)) {
             query("INSERT INTO employeesce (name, employeetype, email, phonenum) VALUES (\'" + name + "\', \'" + type + "\', \'" + email + "\', \'" + phone + "\');");
         }
       
         
     }
 
+    /**
+     * Updates employee with values from relevant text fields on button press
+     */
     private void updateEmpBtn() {
         String targetName = updateEmpTargetNameField.getText();
         String newName = updateEmpNewNameField.getText();
@@ -541,7 +634,7 @@ public class DatabaseController {
         if(!type.isEmpty()) {
             query("UPDATE employeesce SET employeetype = \'" + type + "\' WHERE name = \'" + targetName + "\';");
         }
-        if(!email.isEmpty()) {
+        if(!email.isEmpty() && validEmail(email)) {
             query("UPDATE employeesce SET email = \'" + email + "\' WHERE name = \'" + targetName + "\';");
         }
         if(!phone.isEmpty() && validPhone(phone)) {
@@ -553,12 +646,18 @@ public class DatabaseController {
       
     }
 
+    /**
+     * Fires employee of name in relevant text field
+     */
     private void fireBtn() {
         String name = fireEmpNameField.getText();
         query("DELETE FROM employeesce WHERE name = \'" + name + "\';");   
     }
 
     
+    /**
+     * Filters items by sales for given window on button press
+     */
     private void filterBtn() {
         String db = dbView.getText();
         LocalDate start = startDate.getValue();
@@ -610,9 +709,7 @@ public class DatabaseController {
     }
 
     /**
-     * Manager querying textbox
-     * 
-     * @exception Exception Throws exception upon invalid SQL query or failed connection to database
+     * Runs arbitrary queries from text field on button press
      */
     private void runQuery() {
         System.out.println("Querying");
@@ -660,14 +757,9 @@ public class DatabaseController {
         }
     }
 
-<<<<<<< Updated upstream
-
-=======
     /**
-     * Retrieves current users from database
-     * @exception Exception Thrown upon failing to connect or upon failed SQL query
+     * Used for retrieving login information on startup
      */
->>>>>>> Stashed changes
     public void getUsers()
     {
         try {
@@ -698,8 +790,10 @@ public class DatabaseController {
 
     /**
      * Validates user login information and returns associated user type
-     * @param username - username associated with login information
-     * @param password - password associated with login information
+     * 
+     * @param username username associated with login information
+     * @param password password associated with login information
+     * @return String containing user type associated with login information
      */
     public String auth(String username, String password)
     {

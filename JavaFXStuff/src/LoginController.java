@@ -16,6 +16,13 @@ import javafx.stage.Stage;
  * Bridge between login.fxml and backend
  */
 public class LoginController{
+    /**
+     * No-argument constructor required by JavaFX when instantiating the controller.
+     * Providing an explicit constructor so the generated Javadoc includes a
+     * documented constructor instead of a default undocumented one.
+     */
+    public LoginController() {}
+
     DatabaseController dbContr = new DatabaseController();
 
     @FXML
@@ -34,10 +41,9 @@ public class LoginController{
     }
 
     /**
-     * Verifies login. Returns when invalid login
+     * Verifies login upon button press <br>
      * Loads appropriate fxml upon validation
-     * @param event - Used to link to stage. Passed in via initialize
-     * @exception IOException Upon failing to register data from the appropriate fields
+     * @param event Used to obtain parent window. Passed via button press
      */
     private void login(ActionEvent event)
     {
