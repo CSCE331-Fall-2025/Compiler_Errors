@@ -65,8 +65,11 @@
         
         <BorderPane layoutX="630.0" layoutY="10.0" prefHeight="500.0" prefWidth="350.0">
           <center>
-            <ListView fx:id="receiptListView" prefHeight="468.0" prefWidth="330.0" BorderPane.alignment="CENTER" />
+            <ListView fx:id="receiptListView" prefHeight="430.0" prefWidth="330.0" BorderPane.alignment="CENTER" />
           </center>
+          <bottom>
+            <Button fx:id="removeItemBtn" mnemonicParsing="false" onAction="#removeSelectedItem" text="Remove Selected Item" prefHeight="30.0" prefWidth="330.0" style="-fx-font-size: 11; -fx-padding: 5;" BorderPane.alignment="CENTER" />
+          </bottom>
           <top>
             <Label style="-fx-font-size: 14; -fx-font-weight: bold;" text="Purchases / Receipt" BorderPane.alignment="CENTER" />
           </top>

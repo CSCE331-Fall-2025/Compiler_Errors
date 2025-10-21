@@ -2,13 +2,9 @@ import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.naming.spi.DirStateFactory.Result;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
@@ -27,6 +23,13 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ListView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.scene.Node;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+
 
 public class DatabaseController {
     
@@ -92,8 +95,8 @@ public class DatabaseController {
     @FXML 
     private TextField currentHourField;
     
-    private String lastStatement = "";
-    
+    private String lastStatement;
+
     private static final String DB_URL = "jdbc:postgresql://csce-315-db.engr.tamu.edu/CSCE315Database"; //database location
     private dbSetup my = new dbSetup();
     private record Entry(String username, String password, String userType){}; //Special subclass record type
@@ -113,7 +116,7 @@ public class DatabaseController {
         refreshBtn();
         // Set up what happens when button is clicked
         ObservableList<String> reports = FXCollections.observableArrayList(
-             "Top 5 Menu items", "Top 10 Sales Days", "All time profit"
+             "Top 5 Menu items", "Top 10 Sales Days", "All time profit", "X Report", "Z Report"
         );
         reportBox.setItems(reports);
 
@@ -651,121 +654,6 @@ public class DatabaseController {
         }
     }
 
-    public void getXReport()
-    {
-        String date;
-        int hour;
-        
-        //Stores amount of an item sold
-        HashMap<String, Integer> quantitySold = new HashMap<String, Integer>();
-        //Total value per hour
-        double totalVal = 0;
-
-        try
-        {
-            ResultSet rs = stmt.executeQuery("SELECT EXTRACT(HOUR FROM time) AS hour, item, qty, price from orderhistoryce WHERE date = " + date + " AND EXTRACT(HOUR FROM \"time\") = " + Integer.toString(hour) + ";");
-
-            while(rs.next())
-            {
-
-                int curHour = rs.getInt("hour");
-                String name = rs.getString("item");
-                int qty = rs.getInt("qty");
-                double price = rs.getDouble("price");
-
-                //Quantity storage
-                int temp;
-                if(quantitySold.get(name) == null)
-                {
-                    temp = 0;
-                }
-                else
-                {
-                    temp = quantitySold.get(name);
-                }
-                temp += qty;
-                //Sets quantitySold[name] = temp;
-                quantitySold.put(name,temp);
-
-                //Stores total value for the entire day
-                totalVal += (qty * price);
-            }
-        }
-        catch(SQLException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    public void getZReport()
-    {
-        //Date field. Either start or end date should be fine. New field should work too
-        String date;
-        
-        //Stores amount of an item sold
-        HashMap<String, Integer> quantitySold = new HashMap<String, Integer>();
-        //Stores quantitiesSold per hour
-        HashMap<Integer,HashMap<String,Integer>> XReports = new HashMap<Integer,HashMap<String,Integer>>();
-        //Total value per hour
-        HashMap<Integer,Double> totalVal = new HashMap<Integer,Double>(); //Total for the hour [Key]
-
-        int firstHour = 9;
-        int finalHour = 22;
-        try
-        {
-            //Gets only hour from the time, the Extract
-            ResultSet rs = stmt.executeQuery("SELECT EXTRACT(HOUR FROM time) AS hour, item, qty, price from orderhistoryce WHERE date = " + date + ";");
-            int prevHour = rs.getInt("hour");
-
-            //Get starting hour
-            firstHour = prevHour;
-            while(rs.next())
-            {
-                
-                int curHour = rs.getInt("hour");
-                String name = rs.getString("item");
-                int qty = rs.getInt("qty");
-                double price = rs.getDouble("price");
-                
-                //If no longer same hour, store it before clearing
-                if(curHour != prevHour)
-                {
-                    XReports.put(prevHour,quantitySold);
-                    quantitySold.clear();
-                }
-
-                //Quantity storage
-                int temp;
-                if(quantitySold.get(name) == null)
-                {
-                    temp = 0;
-                }
-                else
-                {
-                    temp = quantitySold.get(name);
-                }
-                temp += qty;
-                //Sets quantitySold[name] = temp;
-                quantitySold.put(name,temp);
-
-                //Stores total value for the entire day
-                double tempTwo = totalVal.get(curHour);
-                tempTwo += (qty * price);
-                totalVal.put(curHour,tempTwo);
-
-                //Increment prevHour and finalHour to curHour
-                prevHour = curHour;
-                finalHour = curHour;
-            }
-        }
-        catch(SQLException e)
-        {
-            e.printStackTrace();
-        }
-
-
-    }
-
 
     public void getUsers()
     {
@@ -774,7 +662,7 @@ public class DatabaseController {
             // Build the connection
             Class.forName("org.postgresql.Driver");
             conn = DriverManager.getConnection(DB_URL, my.user, my.pswd);
-            //conn = DriverManager.getConnection(DB_URL, dotenv.get("DB_USER"), dotenv.get("DB_PASS"));
+
             // Create statement
             stmt = conn.createStatement();
 
@@ -815,23 +703,4 @@ public class DatabaseController {
         }
         return "No User Found";
     }
-
-    //In initialize, just do event -> swapToCashier(event)
-    public void swapToCashier(ActionEvent event)
-    {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/Cashiermenu.fxml"));
-        try
-        {
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    
 }
